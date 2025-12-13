@@ -1,9 +1,9 @@
 ---
-name: YouTube Video Analyzer
-description: This skill should be used when the user asks to "analyze a YouTube video", "interpret this video", "summarize this YouTube video", or sends a message like "explain this video https://youtube.com/..." or uses Chinese phrases like "解读这个视频", "分析这个视频", "总结这个视频". The skill downloads subtitles and transforms video content into a comprehensive blog-style article.
+name: Digest YouTube Video
+description: This skill should be used when the user asks to "digest a YouTube video", "interpret this video", "summarize this YouTube video", or sends a message like "explain this video https://youtube.com/..." or uses Chinese phrases like "解读这个视频", "分析这个视频", "总结这个视频". The skill downloads subtitles and transforms video content into a comprehensive blog-style article.
 ---
 
-# YouTube Video Analyzer
+# Digest YouTube Video
 
 Transform YouTube video content into comprehensive, readable articles by downloading and analyzing subtitles.
 
@@ -14,7 +14,7 @@ Transform YouTube video content into comprehensive, readable articles by downloa
 Run the bundled script to download subtitles:
 
 ```bash
-~/.klaude/skills/youtube-video-analyzer/scripts/download_subtitles.sh "VIDEO_URL" [output_dir]
+~/.klaude/skills/digest-youtube-video/scripts/download_subtitles.sh "VIDEO_URL" [output_dir]
 ```
 
 The script will:
