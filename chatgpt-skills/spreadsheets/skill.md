@@ -1,6 +1,11 @@
-# Spreadsheet Skill (Create • Edit • Analyze • Visualize)
+---
+name: spreadsheet
+description: This skill should be used when the user asks to "create a spreadsheet", "edit Excel files", "analyze tabular data", "work with .xlsx or .csv files", "add formulas to a sheet", "format a workbook", or needs to create, edit, analyze, or visualize spreadsheet data.
+---
 
-Use this skill when you need to work with spreadsheets (.xlsx, .csv, .tsv) to do any of the following:
+# Spreadsheet Skill (Create / Edit / Analyze / Visualize)
+
+This skill covers working with spreadsheets (.xlsx, .csv, .tsv) for the following tasks:
 - Create a new workbook/sheet with proper formulas, cell/number formatting, and structured layout
 - Read or analyze tabular data (filter, aggregate, pivot, compute metrics) directly in a sheet
 - Modify an existing workbook without breaking existing formulas or references

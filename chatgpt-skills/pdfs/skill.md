@@ -1,3 +1,8 @@
+---
+name: pdf
+description: This skill should be used when the user asks to "read a PDF", "create a PDF", "edit PDF files", "convert PDF to images", or works with PDF documents using tools like reportlab, pdfplumber, or pdftoppm.
+---
+
 # PDF reading, creation, and review guidance
 
 ## Reading PDFs

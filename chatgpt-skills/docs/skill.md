@@ -1,3 +1,8 @@
+---
+name: docx
+description: This skill should be used when the user asks to "read a DOCX", "create a Word document", "edit DOCX files", "convert DOCX to PDF", or works with Microsoft Word (.docx) documents.
+---
+
 # DOCX reading, creation, and review guidance
 
 ## Reading DOCXs
