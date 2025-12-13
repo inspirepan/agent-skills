@@ -1,5 +1,5 @@
 ---
-name: Digest YouTube Video
+name: digest-youtube-video
 description: This skill should be used when the user asks to "digest a YouTube video", "interpret this video", "summarize this YouTube video", or sends a message like "explain this video https://youtube.com/..." or uses Chinese phrases like "解读这个视频", "分析这个视频", "总结这个视频". The skill downloads subtitles and transforms video content into a comprehensive blog-style article.
 ---
 
@@ -27,7 +27,7 @@ The script will:
 
 Read the downloaded SRT file and rewrite the video content into a "reading version" article, organized by thematic sections. The goal is to allow readers to fully understand the video content through reading alone, as if reading a blog post version of the video.
 
-## Analysis Output Template
+## Analysis Output Requirements (MUST Follow)
 
 ### 1. Metadata
 
