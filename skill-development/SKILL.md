@@ -1,12 +1,12 @@
 ---
-name: Skill Development
-description: This skill should be used when the user wants to "create a skill", "add a skill to plugin", "write a new skill", "improve skill description", "organize skill content", or needs guidance on skill structure, progressive disclosure, or skill development best practices for Claude Code plugins.
-version: 0.1.0
+name: skill-creator
+description: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
+license: Complete terms in LICENSE.txt
 ---
 
-# Skill Development for Claude Code Plugins
+# Skill Creator
 
-This skill provides guidance for creating effective skills for Claude Code plugins.
+This skill provides guidance for creating effective skills.
 
 ## About Skills
 
@@ -127,107 +127,76 @@ Example: When building a `big-query` skill to handle queries like "How many user
 1. Querying BigQuery requires re-discovering the table schemas and relationships each time
 2. A `references/schema.md` file documenting the table schemas would be helpful to store in the skill
 
-**For Claude Code plugins:** When building a hooks skill, the analysis shows:
-1. Developers repeatedly need to validate hooks.json and test hook scripts
-2. `scripts/validate-hook-schema.sh` and `scripts/test-hook.sh` utilities would be helpful
-3. `references/patterns.md` for detailed hook patterns to avoid bloating SKILL.md
-
 To establish the skill's contents, analyze each concrete example to create a list of the reusable resources to include: scripts, references, and assets.
 
-### Step 3: Create Skill Structure
+### Step 3: Initializing the Skill
 
-For Claude Code plugins, create the skill directory structure:
+At this point, it is time to actually create the skill.
+
+Skip this step only if the skill being developed already exists, and iteration or packaging is needed. In this case, continue to the next step.
+
+When creating a new skill from scratch, always run the `init_skill.py` script. The script conveniently generates a new template skill directory that automatically includes everything a skill requires, making the skill creation process much more efficient and reliable.
+
+Usage:
 
 ```bash
-mkdir -p plugin-name/skills/skill-name/{references,examples,scripts}
-touch plugin-name/skills/skill-name/SKILL.md
+scripts/init_skill.py <skill-name> --path <output-directory>
 ```
 
-**Note:** Unlike the generic skill-creator which uses `init_skill.py`, plugin skills are created directly in the plugin's `skills/` directory with a simpler manual structure.
+The script:
+
+- Creates the skill directory at the specified path
+- Generates a SKILL.md template with proper frontmatter and TODO placeholders
+- Creates example resource directories: `scripts/`, `references/`, and `assets/`
+- Adds example files in each directory that can be customized or deleted
+
+After initialization, customize or remove the generated SKILL.md and example files as needed.
 
 ### Step 4: Edit the Skill
 
-When editing the (newly-created or existing) skill, remember that the skill is being created for another instance of Claude to use. Focus on including information that would be beneficial and non-obvious to Claude. Consider what procedural knowledge, domain-specific details, or reusable assets would help another Claude instance execute these tasks more effectively.
+When editing the (newly-generated or existing) skill, remember that the skill is being created for another instance of Claude to use. Focus on including information that would be beneficial and non-obvious to Claude. Consider what procedural knowledge, domain-specific details, or reusable assets would help another Claude instance execute these tasks more effectively.
 
 #### Start with Reusable Skill Contents
 
 To begin implementation, start with the reusable resources identified above: `scripts/`, `references/`, and `assets/` files. Note that this step may require user input. For example, when implementing a `brand-guidelines` skill, the user may need to provide brand assets or templates to store in `assets/`, or documentation to store in `references/`.
 
-Also, delete any example files and directories not needed for the skill. Create only the directories you actually need (references/, examples/, scripts/).
+Also, delete any example files and directories not needed for the skill. The initialization script creates example files in `scripts/`, `references/`, and `assets/` to demonstrate structure, but most skills won't need all of them.
 
 #### Update SKILL.md
 
 **Writing Style:** Write the entire skill using **imperative/infinitive form** (verb-first instructions), not second person. Use objective, instructional language (e.g., "To accomplish X, do Y" rather than "You should do X" or "If you need to do X"). This maintains consistency and clarity for AI consumption.
 
-**Description (Frontmatter):** Use third-person format with specific trigger phrases:
-
-```yaml
----
-name: Skill Name
-description: This skill should be used when the user asks to "specific phrase 1", "specific phrase 2", "specific phrase 3". Include exact phrases users would say that should trigger this skill. Be concrete and specific.
-version: 0.1.0
----
-```
-
-**Good description examples:**
-```yaml
-description: This skill should be used when the user asks to "create a hook", "add a PreToolUse hook", "validate tool use", "implement prompt-based hooks", or mentions hook events (PreToolUse, PostToolUse, Stop).
-```
-
-**Bad description examples:**
-```yaml
-description: Use this skill when working with hooks.  # Wrong person, vague
-description: Load when user needs hook help.  # Not third person
-description: Provides hook guidance.  # No trigger phrases
-```
-
-To complete SKILL.md body, answer the following questions:
+To complete SKILL.md, answer the following questions:
 
 1. What is the purpose of the skill, in a few sentences?
-2. When should the skill be used? (Include this in frontmatter description with specific triggers)
+2. When should the skill be used?
 3. In practice, how should Claude use the skill? All reusable skill contents developed above should be referenced so that Claude knows how to use them.
 
-**Keep SKILL.md lean:** Target 1,500-2,000 words for the body. Move detailed content to references/:
-- Detailed patterns → `references/patterns.md`
-- Advanced techniques → `references/advanced.md`
-- Migration guides → `references/migration.md`
-- API references → `references/api-reference.md`
+### Step 5: Packaging a Skill
 
-**Reference resources in SKILL.md:**
-```markdown
-## Additional Resources
+Once the skill is ready, it should be packaged into a distributable zip file that gets shared with the user. The packaging process automatically validates the skill first to ensure it meets all requirements:
 
-### Reference Files
-
-For detailed patterns and techniques, consult:
-- **`references/patterns.md`** - Common patterns
-- **`references/advanced.md`** - Advanced use cases
-
-### Example Files
-
-Working examples in `examples/`:
-- **`example-script.sh`** - Working example
+```bash
+scripts/package_skill.py <path/to/skill-folder>
 ```
 
-### Step 5: Validate and Test
+Optional output directory specification:
 
-**For plugin skills, validation is different from generic skills:**
-
-1. **Check structure**: Skill directory in `plugin-name/skills/skill-name/`
-2. **Validate SKILL.md**: Has frontmatter with name and description
-3. **Check trigger phrases**: Description includes specific user queries
-4. **Verify writing style**: Body uses imperative/infinitive form, not second person
-5. **Test progressive disclosure**: SKILL.md is lean (~1,500-2,000 words), detailed content in references/
-6. **Check references**: All referenced files exist
-7. **Validate examples**: Examples are complete and correct
-8. **Test scripts**: Scripts are executable and work correctly
-
-**Use the skill-reviewer agent:**
-```
-Ask: "Review my skill and check if it follows best practices"
+```bash
+scripts/package_skill.py <path/to/skill-folder> ./dist
 ```
 
-The skill-reviewer agent will check description quality, content organization, and progressive disclosure.
+The packaging script will:
+
+1. **Validate** the skill automatically, checking:
+   - YAML frontmatter format and required fields
+   - Skill naming conventions and directory structure
+   - Description completeness and quality
+   - File organization and resource references
+
+2. **Package** the skill if validation passes, creating a zip file named after the skill (e.g., `my-skill.zip`) that includes all files and maintains the proper directory structure for distribution.
+
+If validation fails, the script will report the errors and exit without creating a package. Fix any validation errors and run the packaging command again.
 
 ### Step 6: Iterate
 
@@ -238,400 +207,3 @@ After testing the skill, users may request improvements. Often this happens righ
 2. Notice struggles or inefficiencies
 3. Identify how SKILL.md or bundled resources should be updated
 4. Implement changes and test again
-
-**Common improvements:**
-- Strengthen trigger phrases in description
-- Move long sections from SKILL.md to references/
-- Add missing examples or scripts
-- Clarify ambiguous instructions
-- Add edge case handling
-
-## Plugin-Specific Considerations
-
-### Skill Location in Plugins
-
-Plugin skills live in the plugin's `skills/` directory:
-
-```
-my-plugin/
-├── .claude-plugin/
-│   └── plugin.json
-├── commands/
-├── agents/
-└── skills/
-    └── my-skill/
-        ├── SKILL.md
-        ├── references/
-        ├── examples/
-        └── scripts/
-```
-
-### Auto-Discovery
-
-Claude Code automatically discovers skills:
-- Scans `skills/` directory
-- Finds subdirectories containing `SKILL.md`
-- Loads skill metadata (name + description) always
-- Loads SKILL.md body when skill triggers
-- Loads references/examples when needed
-
-### No Packaging Needed
-
-Plugin skills are distributed as part of the plugin, not as separate ZIP files. Users get skills when they install the plugin.
-
-### Testing in Plugins
-
-Test skills by installing plugin locally:
-
-```bash
-# Test with --plugin-dir
-cc --plugin-dir /path/to/plugin
-
-# Ask questions that should trigger the skill
-# Verify skill loads correctly
-```
-
-## Examples from Plugin-Dev
-
-Study the skills in this plugin as examples of best practices:
-
-**hook-development skill:**
-- Excellent trigger phrases: "create a hook", "add a PreToolUse hook", etc.
-- Lean SKILL.md (1,651 words)
-- 3 references/ files for detailed content
-- 3 examples/ of working hooks
-- 3 scripts/ utilities
-
-**agent-development skill:**
-- Strong triggers: "create an agent", "agent frontmatter", etc.
-- Focused SKILL.md (1,438 words)
-- References include the AI generation prompt from Claude Code
-- Complete agent examples
-
-**plugin-settings skill:**
-- Specific triggers: "plugin settings", ".local.md files", "YAML frontmatter"
-- References show real implementations (multi-agent-swarm, ralph-wiggum)
-- Working parsing scripts
-
-Each demonstrates progressive disclosure and strong triggering.
-
-## Progressive Disclosure in Practice
-
-### What Goes in SKILL.md
-
-**Include (always loaded when skill triggers):**
-- Core concepts and overview
-- Essential procedures and workflows
-- Quick reference tables
-- Pointers to references/examples/scripts
-- Most common use cases
-
-**Keep under 3,000 words, ideally 1,500-2,000 words**
-
-### What Goes in references/
-
-**Move to references/ (loaded as needed):**
-- Detailed patterns and advanced techniques
-- Comprehensive API documentation
-- Migration guides
-- Edge cases and troubleshooting
-- Extensive examples and walkthroughs
-
-**Each reference file can be large (2,000-5,000+ words)**
-
-### What Goes in examples/
-
-**Working code examples:**
-- Complete, runnable scripts
-- Configuration files
-- Template files
-- Real-world usage examples
-
-**Users can copy and adapt these directly**
-
-### What Goes in scripts/
-
-**Utility scripts:**
-- Validation tools
-- Testing helpers
-- Parsing utilities
-- Automation scripts
-
-**Should be executable and documented**
-
-## Writing Style Requirements
-
-### Imperative/Infinitive Form
-
-Write using verb-first instructions, not second person:
-
-**Correct (imperative):**
-```
-To create a hook, define the event type.
-Configure the MCP server with authentication.
-Validate settings before use.
-```
-
-**Incorrect (second person):**
-```
-You should create a hook by defining the event type.
-You need to configure the MCP server.
-You must validate settings before use.
-```
-
-### Third-Person in Description
-
-The frontmatter description must use third person:
-
-**Correct:**
-```yaml
-description: This skill should be used when the user asks to "create X", "configure Y"...
-```
-
-**Incorrect:**
-```yaml
-description: Use this skill when you want to create X...
-description: Load this skill when user asks...
-```
-
-### Objective, Instructional Language
-
-Focus on what to do, not who should do it:
-
-**Correct:**
-```
-Parse the frontmatter using sed.
-Extract fields with grep.
-Validate values before use.
-```
-
-**Incorrect:**
-```
-You can parse the frontmatter...
-Claude should extract fields...
-The user might validate values...
-```
-
-## Validation Checklist
-
-Before finalizing a skill:
-
-**Structure:**
-- [ ] SKILL.md file exists with valid YAML frontmatter
-- [ ] Frontmatter has `name` and `description` fields
-- [ ] Markdown body is present and substantial
-- [ ] Referenced files actually exist
-
-**Description Quality:**
-- [ ] Uses third person ("This skill should be used when...")
-- [ ] Includes specific trigger phrases users would say
-- [ ] Lists concrete scenarios ("create X", "configure Y")
-- [ ] Not vague or generic
-
-**Content Quality:**
-- [ ] SKILL.md body uses imperative/infinitive form
-- [ ] Body is focused and lean (1,500-2,000 words ideal, <5k max)
-- [ ] Detailed content moved to references/
-- [ ] Examples are complete and working
-- [ ] Scripts are executable and documented
-
-**Progressive Disclosure:**
-- [ ] Core concepts in SKILL.md
-- [ ] Detailed docs in references/
-- [ ] Working code in examples/
-- [ ] Utilities in scripts/
-- [ ] SKILL.md references these resources
-
-**Testing:**
-- [ ] Skill triggers on expected user queries
-- [ ] Content is helpful for intended tasks
-- [ ] No duplicated information across files
-- [ ] References load when needed
-
-## Common Mistakes to Avoid
-
-### Mistake 1: Weak Trigger Description
-
-❌ **Bad:**
-```yaml
-description: Provides guidance for working with hooks.
-```
-
-**Why bad:** Vague, no specific trigger phrases, not third person
-
-✅ **Good:**
-```yaml
-description: This skill should be used when the user asks to "create a hook", "add a PreToolUse hook", "validate tool use", or mentions hook events. Provides comprehensive hooks API guidance.
-```
-
-**Why good:** Third person, specific phrases, concrete scenarios
-
-### Mistake 2: Too Much in SKILL.md
-
-❌ **Bad:**
-```
-skill-name/
-└── SKILL.md  (8,000 words - everything in one file)
-```
-
-**Why bad:** Bloats context when skill loads, detailed content always loaded
-
-✅ **Good:**
-```
-skill-name/
-├── SKILL.md  (1,800 words - core essentials)
-└── references/
-    ├── patterns.md (2,500 words)
-    └── advanced.md (3,700 words)
-```
-
-**Why good:** Progressive disclosure, detailed content loaded only when needed
-
-### Mistake 3: Second Person Writing
-
-❌ **Bad:**
-```markdown
-You should start by reading the configuration file.
-You need to validate the input.
-You can use the grep tool to search.
-```
-
-**Why bad:** Second person, not imperative form
-
-✅ **Good:**
-```markdown
-Start by reading the configuration file.
-Validate the input before processing.
-Use the grep tool to search for patterns.
-```
-
-**Why good:** Imperative form, direct instructions
-
-### Mistake 4: Missing Resource References
-
-❌ **Bad:**
-```markdown
-# SKILL.md
-
-[Core content]
-
-[No mention of references/ or examples/]
-```
-
-**Why bad:** Claude doesn't know references exist
-
-✅ **Good:**
-```markdown
-# SKILL.md
-
-[Core content]
-
-## Additional Resources
-
-### Reference Files
-- **`references/patterns.md`** - Detailed patterns
-- **`references/advanced.md`** - Advanced techniques
-
-### Examples
-- **`examples/script.sh`** - Working example
-```
-
-**Why good:** Claude knows where to find additional information
-
-## Quick Reference
-
-### Minimal Skill
-
-```
-skill-name/
-└── SKILL.md
-```
-
-Good for: Simple knowledge, no complex resources needed
-
-### Standard Skill (Recommended)
-
-```
-skill-name/
-├── SKILL.md
-├── references/
-│   └── detailed-guide.md
-└── examples/
-    └── working-example.sh
-```
-
-Good for: Most plugin skills with detailed documentation
-
-### Complete Skill
-
-```
-skill-name/
-├── SKILL.md
-├── references/
-│   ├── patterns.md
-│   └── advanced.md
-├── examples/
-│   ├── example1.sh
-│   └── example2.json
-└── scripts/
-    └── validate.sh
-```
-
-Good for: Complex domains with validation utilities
-
-## Best Practices Summary
-
-✅ **DO:**
-- Use third-person in description ("This skill should be used when...")
-- Include specific trigger phrases ("create X", "configure Y")
-- Keep SKILL.md lean (1,500-2,000 words)
-- Use progressive disclosure (move details to references/)
-- Write in imperative/infinitive form
-- Reference supporting files clearly
-- Provide working examples
-- Create utility scripts for common operations
-- Study plugin-dev's skills as templates
-
-❌ **DON'T:**
-- Use second person anywhere
-- Have vague trigger conditions
-- Put everything in SKILL.md (>3,000 words without references/)
-- Write in second person ("You should...")
-- Leave resources unreferenced
-- Include broken or incomplete examples
-- Skip validation
-
-## Additional Resources
-
-### Study These Skills
-
-Plugin-dev's skills demonstrate best practices:
-- `../hook-development/` - Progressive disclosure, utilities
-- `../agent-development/` - AI-assisted creation, references
-- `../mcp-integration/` - Comprehensive references
-- `../plugin-settings/` - Real-world examples
-- `../command-development/` - Clear critical concepts
-- `../plugin-structure/` - Good organization
-
-### Reference Files
-
-For complete skill-creator methodology:
-- **`references/skill-creator-original.md`** - Full original skill-creator content
-
-## Implementation Workflow
-
-To create a skill for your plugin:
-
-1. **Understand use cases**: Identify concrete examples of skill usage
-2. **Plan resources**: Determine what scripts/references/examples needed
-3. **Create structure**: `mkdir -p skills/skill-name/{references,examples,scripts}`
-4. **Write SKILL.md**:
-   - Frontmatter with third-person description and trigger phrases
-   - Lean body (1,500-2,000 words) in imperative form
-   - Reference supporting files
-5. **Add resources**: Create references/, examples/, scripts/ as needed
-6. **Validate**: Check description, writing style, organization
-7. **Test**: Verify skill loads on expected triggers
-8. **Iterate**: Improve based on usage
-
-Focus on strong trigger descriptions, progressive disclosure, and imperative writing style for effective skills that load when needed and provide targeted guidance.
