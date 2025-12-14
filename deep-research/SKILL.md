@@ -141,11 +141,13 @@ SCOPE BOUNDARIES:
 - Time range: [if applicable]
 
 OUTPUT REQUIREMENTS:
-Provide findings as structured data including:
-- Key facts discovered
-- Source URLs for each fact
+Provide findings as structured data. For EACH fact, you MUST include:
+- The fact/finding itself
+- COMPLETE source URL (https://...) - NOT just the domain or publication name
+- Publication date if available
 - Confidence level (high/medium/low)
-- Any conflicting information found
+
+CRITICAL: Every fact must have a full, clickable URL. Facts without URLs will be discarded.
 ```
 
 ### 2.3 Sub-Agent Count Guidelines
@@ -171,15 +173,19 @@ Provide findings as structured data including:
       "items": {
         "type": "object",
         "properties": {
-          "fact": {"type": "string"},
-          "source_url": {"type": "string"},
+          "fact": {"type": "string", "description": "The factual finding"},
+          "source_url": {"type": "string", "description": "FULL URL starting with https://"},
+          "source_title": {"type": "string", "description": "Article or document title"},
+          "source_date": {"type": "string", "description": "Publication date YYYY-MM-DD"},
           "confidence": {"enum": ["high", "medium", "low"]}
-        }
+        },
+        "required": ["fact", "source_url"]
       }
     },
     "summary": {"type": "string"},
     "gaps_identified": {"type": "array", "items": {"type": "string"}}
-  }
+  },
+  "required": ["key_findings", "summary"]
 }
 ```
 
@@ -192,7 +198,18 @@ Provide findings as structured data including:
     "attributes": {"type": "object"},
     "pros": {"type": "array", "items": {"type": "string"}},
     "cons": {"type": "array", "items": {"type": "string"}},
-    "sources": {"type": "array", "items": {"type": "string"}}
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {"type": "string"},
+          "url": {"type": "string", "description": "FULL URL starting with https://"},
+          "date": {"type": "string"}
+        },
+        "required": ["url"]
+      }
+    }
   }
 }
 ```
@@ -225,6 +242,18 @@ After sub-agents return:
 2. **Identify gaps** - Note missing information that needs follow-up
 3. **Prioritize by confidence** - Weight high-confidence findings
 4. **Resolve conflicts** - Use recency, source authority, and consistency
+5. **Compile source registry** - Create a master list of all sources with URLs
+
+**Source Registry Format:**
+Maintain a consolidated list of all sources gathered:
+```
+| # | Title | URL | Date | Used For |
+|---|-------|-----|------|----------|
+| 1 | [title] | https://... | YYYY-MM-DD | [which finding] |
+| 2 | [title] | https://... | YYYY-MM-DD | [which finding] |
+```
+
+This registry will be used for the References section in the final article.
 
 **Decision: Additional Research Round?**
 - If critical gaps exist: Deploy targeted follow-up agents (max 2-3)
@@ -247,9 +276,29 @@ Synthesize all sub-agent findings into a structured outline:
 Write the complete article based on outline and synthesized research:
 
 1. **Integrate findings naturally** - Weave sub-agent discoveries into narrative
-2. **Attribute appropriately** - Note sources for claims
+2. **Inline citations** - Use numbered references [1], [2], etc. when citing specific facts
 3. **Maintain objectivity** - Present multiple viewpoints fairly
 4. **Target length** - 1500-3000 words for comprehensive topics
+5. **References section** - Include a numbered reference list at the end with full URLs
+
+**Citation Format (GFM Footnotes):**
+
+Use GitHub Flavored Markdown footnote syntax for inline citations. This enables clickable references that render as superscript numbers.
+
+```markdown
+According to a recent analysis[^1], the policy affects multiple sectors[^2]...
+
+[^1]: [Article Title](https://full-url.com/path) - Source Name, YYYY-MM-DD
+[^2]: [Article Title](https://full-url.com/path) - Source Name, YYYY-MM-DD
+```
+
+**Syntax Rules:**
+- Inline: `[^n]` immediately after the cited text (no space before)
+- Definition: `[^n]:` followed by the source details
+- Footnote definitions can be placed anywhere but conventionally go at the end
+- Renderers (GitHub, Obsidian, etc.) will auto-number and create bidirectional links
+
+**CRITICAL:** Every factual claim must be traceable to a source URL from sub-agent findings. Do not use sources without URLs.
 
 **Output:** Write to `{topic}-3-first-draft.md`
 
@@ -291,6 +340,18 @@ Integrate all improvements into polished final version:
 2. Verify consistency in terminology and tone
 3. Final fact-check against sub-agent findings
 4. Polish transitions and flow
+5. **Verify all citations have URLs** - Ensure References section contains clickable links
+
+**Final References Format (GFM Footnotes):**
+```markdown
+[^1]: [Full Article Title](https://example.com/full/path/to/article) - Publication Name, YYYY-MM-DD
+[^2]: [Full Article Title](https://example.com/another/article) - Publication Name, YYYY-MM-DD
+```
+
+**Quality Check:** Before finalizing, verify:
+- [ ] All inline citations `[^n]` have corresponding footnote definitions
+- [ ] All footnote definitions contain valid, complete URLs
+- [ ] No sources cited without URLs
 
 **Output:** Write to `{topic}-5-final.md`
 
