@@ -48,12 +48,25 @@ OUTPUT_TEMPLATE="${SAFE_TITLE}"
 echo "Downloading subtitles..."
 yt-dlp --write-auto-subs --sub-format srt --skip-download -o "$OUTPUT_TEMPLATE" "$URL" 2>&1 | grep -E "^(\[info\]|WARNING:.*subtitles)" || true
 
-# Check results
+# Check results - look for any .srt file (yt-dlp may use different naming)
 echo ""
 echo "Downloaded files:"
-ls -la "${SAFE_TITLE}"*.srt 2>/dev/null || true
+ls -la *.srt 2>/dev/null || true
 
-PRIMARY_SRT=$(ls "${SAFE_TITLE}"*.srt 2>/dev/null | head -1)
+# Find .srt file, preferring en-orig > en > zh-Hans > zh-Hant > any
+PRIMARY_SRT=""
+for lang in "en-orig" "en" "zh-Hans" "zh-Hant"; do
+    FOUND=$(ls *."${lang}.srt" 2>/dev/null | head -1)
+    if [[ -n "$FOUND" ]]; then
+        PRIMARY_SRT="$FOUND"
+        break
+    fi
+done
+# Fallback to any .srt file
+if [[ -z "$PRIMARY_SRT" ]]; then
+    PRIMARY_SRT=$(ls *.srt 2>/dev/null | head -1)
+fi
+
 if [[ -n "$PRIMARY_SRT" ]]; then
     echo ""
     echo "Primary subtitle file: $(pwd)/$PRIMARY_SRT"

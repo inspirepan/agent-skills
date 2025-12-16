@@ -23,6 +23,8 @@ The script will:
 - Download auto-generated subtitles in SRT format
 - Output the path to the downloaded SRT file
 
+Then, **STOP** and report to user download is done.
+
 ### Step 2: Analyze Subtitles
 
 Read the downloaded SRT file and rewrite the video content into a "reading version" article, organized by thematic sections. The goal is to allow readers to fully understand the video content through reading alone, as if reading a blog post version of the video.

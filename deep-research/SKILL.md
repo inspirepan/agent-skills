@@ -406,15 +406,15 @@ Create Chinese version if requested:
 Agent 1: "Research current quantum computing technology capabilities.
          Focus: hardware advances, qubit counts, error rates, major players.
          Do NOT research business applications."
-         
+
 Agent 2: "Research quantum computing business applications.
          Focus: use cases, companies implementing, ROI examples.
          Do NOT research underlying technology."
-         
+
 Agent 3: "Research quantum computing market and investment landscape.
          Focus: funding, valuations, market projections, key investors.
          Do NOT research technology or specific applications."
-         
+
 Agent 4: "Research challenges and timeline for quantum advantage.
          Focus: technical barriers, expert predictions, roadmaps.
          Do NOT research current applications or market."
