@@ -1,6 +1,8 @@
 ---
 name: deep-research
 description: Comprehensive research workflow for creating well-researched articles. This skill should be used when the user wants to research a topic thoroughly and produce a detailed article with multiple drafts, reviews, and translations. Best for complex topics requiring systematic information gathering, analysis, and iterative refinement.
+metadata:
+  short-description: Comprehensive research workflow for creating well-researched articles
 ---
 
 # Deep Research

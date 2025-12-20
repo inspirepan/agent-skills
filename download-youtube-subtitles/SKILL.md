@@ -1,6 +1,8 @@
 ---
 name: download-youtube-subtitles
 description: This skill should be used when the user asks to "download YouTube subtitles", "get subtitles from video", or sends a message like "download subtitles https://youtube.com/..." or uses Chinese phrases like "下载字幕", "获取字幕". The skill downloads auto-generated subtitles from YouTube videos.
+metadata:
+  short-description: Download auto-generated subtitles from YouTube videos
 ---
 
 # Download YouTube Subtitles
