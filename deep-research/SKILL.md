@@ -302,37 +302,25 @@ According to a recent analysis[^1], the policy affects multiple sectors[^2]...
 
 **Output:** Write to `{topic}-3-first-draft.md`
 
-## Phase 5: Critical Review via Oracle
+## Phase 5: Critical Review and Improvement
 
-Invoke Oracle tool for expert review:
+Conduct a systematic self-review of the draft:
 
-```
-Review this research article draft for:
-1. Factual accuracy and completeness
-2. Balance of perspectives
-3. Logical structure and flow
-4. Writing quality and clarity
+**Review Criteria:**
+1. Factual accuracy - verify claims against sub-agent findings
+2. Balance of perspectives - ensure fair coverage of viewpoints
+3. Logical structure and flow - check narrative progression
+4. Writing quality and clarity - improve readability
+5. Citation completeness - verify all facts have sources
 
-Provide 5-10 specific, prioritized improvement suggestions.
-```
-
-**Oracle Input:**
-- The first draft content
-- Research plan for context
-- Key sources used
-
-## Phase 6: Iterative Improvement
-
-Address Oracle's suggestions systematically:
-
-For each suggestion:
+**For each improvement:**
 - **Original**: [excerpt from draft]
 - **Improved**: [revised content]
 - **Rationale**: [why this works better]
 
 **Output:** Write improvements to `{topic}-4-improvements.md`
 
-## Phase 7: Final Article Assembly
+## Phase 6: Final Article Assembly
 
 Integrate all improvements into polished final version:
 
@@ -355,7 +343,7 @@ Integrate all improvements into polished final version:
 
 **Output:** Write to `{topic}-5-final.md`
 
-## Phase 8: Translation (Optional)
+## Phase 7: Translation (Optional)
 
 Create Chinese version if requested:
 - Translate final polished version
@@ -422,7 +410,7 @@ Agent 4: "Research challenges and timeline for quantum advantage.
 
 **Synthesis:** Combine findings, resolve conflicts, identify gaps
 
-**Phases 3-7:** Outline, draft, Oracle review, improve, finalize
+**Phases 3-6:** Outline, draft, review and improve, finalize
 
 ### Example B: Unfamiliar Topic (Preliminary Search Required)
 
@@ -470,4 +458,4 @@ Agent 4: "Research domestic political factors in both countries.
 - This workflow is for substantial research projects; adapt for simpler queries
 - The Lead Agent NEVER conducts primary web research - always delegate to WebAgent
 - All artifacts go to separate files for user reference
-- Oracle handles quality review; Lead Agent handles synthesis and writing
+- Lead Agent handles quality review, synthesis and writing
