@@ -1,0 +1,3 @@
+[submodule "api2cli"]
+	path = api2cli
+	url = https://github.com/alexknowshtml/api2cli.git

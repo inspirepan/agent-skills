@@ -1,8 +1,8 @@
 ---
-name: download-youtube-subtitles
+name: download-yt-sub
 description: This skill should be used when the user asks to "download YouTube subtitles", "get subtitles from video", or sends a message like "download subtitles https://youtube.com/..." or uses Chinese phrases like "下载字幕", "获取字幕". The skill downloads auto-generated subtitles from YouTube videos.
 metadata:
-  short-description: Download auto-generated subtitles from YouTube videos
+  short-description: Download auto-generated YouTube subtitles
 ---
 
 # Download YouTube Subtitles
@@ -14,7 +14,7 @@ Download auto-generated subtitles from YouTube videos in SRT format.
 Run the bundled script to download subtitles:
 
 ```bash
-~/.klaude/skills/download-youtube-subtitles/scripts/download_subtitles.sh "VIDEO_URL" [output_dir]
+~/.klaude/skills/download-yt-sub/scripts/download_subtitles.sh "VIDEO_URL" [output_dir]
 ```
 
 The script will:
