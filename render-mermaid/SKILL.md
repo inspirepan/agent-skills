@@ -8,15 +8,20 @@ description: "Use when the user asks you to analyze a repository, draw an archit
 ## Workflow
 1. Identify whether visualization is needed: if the user is discussing architecture, dependencies, processes, states, sequences, entity relationships, or branching decisions, prioritize providing Mermaid diagrams.
 2. Generate Mermaid source code (`graph` / `flowchart` / `sequenceDiagram` / `classDiagram` / `erDiagram` / `stateDiagram-v2`, etc.).
-3. Choose an output path with `.png` suffix.
+3. Choose an output path with `.png` suffix. If the user also needs source files, optionally choose `.svg` and `.html` output paths.
 4. Run the command to render:
 
 ```bash
 cd {SKILL_BASE_DIR} && bun scripts/render_mermaid.js \
-  --output "<OUTPUT_PATH>.png" <<'MERMAID'
+  --output "<OUTPUT_PATH>.png" \
+  --theme "<THEME_NAME>" \
+  --svg-output "<OUTPUT_PATH>.svg" \
+  --html-output "<OUTPUT_PATH>.html" <<'MERMAID'
 <MERMAID_TEXT>
 MERMAID
 ```
+
+When only PNG is needed, keep just `--output` and omit the optional flags.
 
 Use this stdin heredoc form only in this skill to avoid command-style confusion.
 
@@ -25,4 +30,6 @@ Use this stdin heredoc form only in this skill to avoid command-style confusion.
 ## Notes
 - The script renders using the npm package `beautiful-mermaid` (loaded via the Bun runtime).
 - The script renders SVG internally and uses `puppeteer-core` (headless Chrome) to export PNG, preserving modern CSS styling.
+- `--theme` supports built-in `beautiful-mermaid` theme names (for example: `zinc-light`, `zinc-dark`, `tokyo-night`, `nord`, `dracula`, `github-dark`, `one-dark`) and aliases `default` / `solarized`.
+- `--svg-output` writes the raw rendered SVG file; `--html-output` writes an HTML wrapper similar to the multi-step Beautiful Mermaid workflow.
 - If rendering fails with `missing Chrome/Chromium executable`, pass `--chrome-path <path>` or set `CHROME_PATH`.
