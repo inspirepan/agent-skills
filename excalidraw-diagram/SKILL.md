@@ -1,6 +1,6 @@
 ---
 name: excalidraw-diagram
-description: Create Excalidraw diagram JSON files that make visual arguments. Use when the user wants to visualize workflows, architectures, or concepts.
+description: "Use when the user wants a polished, editable diagram as a deliverable — architecture docs, system overviews, presentations, or anything they'll share or continue editing. Produces a .excalidraw file the user can open and modify at excalidraw.com. Choose this over render-mermaid when output quality matters or the user needs an editable artifact. Do NOT use for quick inline explanations."
 ---
 
 # Excalidraw Diagram Creator
