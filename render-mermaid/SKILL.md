@@ -15,7 +15,7 @@ Render Mermaid diagrams to PNG/SVG/HTML using beautiful-mermaid themes.
 Render Mermaid Progress:
 - [ ] Step 0: Check setup (EXTEND.md + deps) -- BLOCKING
 - [ ] Step 1: Generate Mermaid source code
-- [ ] Step 2: Render diagram
+- [ ] Step 2: Route by output_mode → render diagram
 - [ ] Step 3: Return result
 ```
 
@@ -36,17 +36,25 @@ test -d "{SKILL_BASE_DIR}/node_modules/beautiful-mermaid" && echo "deps-ok" || e
 |--------|--------|
 | deps-missing | Run `bash "{SKILL_BASE_DIR}/scripts/setup.sh"` -- BLOCKING |
 | EXTEND.md not found | Run first-time setup ([references/config/first-time-setup.md](references/config/first-time-setup.md)) -- BLOCKING |
-| Both found | Load EXTEND.md, continue |
+| Both found | Load EXTEND.md, note `output_mode` value for Step 2 routing, continue |
 
 ### Step 1: Generate Mermaid Source
 
 1. Determine diagram type: `flowchart` / `graph` / `sequenceDiagram` / `classDiagram` / `erDiagram` / `stateDiagram-v2` / `gantt` / `pie` / `gitgraph` / etc.
 2. Generate Mermaid source code.
-3. Choose output path with `.png` suffix.
 
-### Step 2: Render
+### Step 2: Route and Render
 
-**Option A: Full render via script** (PNG/SVG/HTML with beautiful-mermaid themes)
+Read `output_mode` from EXTEND.md to decide rendering path. **This is mandatory -- do NOT default to Option A without checking.**
+
+```
+output_mode = ?
+├── "standalone" ──────────────────→ Option B (always)
+├── "script" (or unset) ──────────→ Option A
+└── deps missing / setup failed ──→ Fallback (CDN template)
+```
+
+**Option A: Script render -- PNG primary** (requires Chrome)
 
 ```bash
 cd "{SKILL_BASE_DIR}" && npx tsx scripts/render_mermaid.js \
@@ -59,17 +67,26 @@ cd "{SKILL_BASE_DIR}" && npx tsx scripts/render_mermaid.js \
 MERMAID
 ```
 
-When only PNG is needed, keep `--output` and `--config`, omit `--svg-output` and `--html-output`.
+When only PNG is needed, omit `--svg-output` and `--html-output`.
 
-Pass `--config` pointing to the user's EXTEND.md for saved preferences. CLI args override config values.
+**Option B: Script render -- HTML primary** (no Chrome needed)
 
-Use stdin heredoc form to avoid shell escaping issues.
+Same script, pass `--html-output` only (no `--output`). Uses beautiful-mermaid themes, skips PNG/Chrome entirely.
 
-**Option B: Standalone HTML** (zero-dependency, CDN-based client-side rendering)
+```bash
+cd "{SKILL_BASE_DIR}" && npx tsx scripts/render_mermaid.js \
+  --html-output "<OUTPUT_PATH>.html" \
+  --theme "<THEME>" \
+  --config "<EXTEND_MD_PATH>" <<'MERMAID'
+<MERMAID_TEXT>
+MERMAID
+```
 
-Read the template at [references/templates/standalone.html](references/templates/standalone.html), substitute placeholders, and write the output file directly. No script execution needed.
+Optionally add `--svg-output` for SVG alongside HTML.
 
-Use `standalone_theme` and `standalone_background` from EXTEND.md as defaults. CLI context or user instructions override config values.
+**Fallback: CDN template** (when deps not installed)
+
+Read the template at [references/templates/standalone.html](references/templates/standalone.html), substitute placeholders, and write the output file directly. No script execution needed. Uses basic Mermaid themes (not beautiful-mermaid).
 
 | Placeholder | EXTEND.md field | Default | Example |
 |-------------|-----------------|---------|---------|
@@ -78,26 +95,26 @@ Use `standalone_theme` and `standalone_background` from EXTEND.md as defaults. C
 | `{{MERMAID_CODE}}` | - | - | `flowchart TD ...` |
 | `{{MERMAID_THEME}}` | `standalone_theme` | `default` | `dark`, `neutral`, `forest` |
 
-Built-in Mermaid themes: `default` (light), `dark`, `neutral`, `forest`, `base`.
+**Common notes for Option A and B:**
 
-When to use each option:
+Pass `--config` pointing to the user's EXTEND.md for saved preferences. CLI args override config values.
 
-| Scenario | Recommended |
-|----------|-------------|
-| EXTEND.md `output_mode: script` | Option A (default) |
-| EXTEND.md `output_mode: standalone` | Option B |
-| Need PNG output | Option A |
-| Need beautiful-mermaid themes | Option A |
-| Deps not installed / setup failed | Option B |
-| Quick preview or sharing | Option B |
-| User explicitly asks for HTML | Option B |
+Use stdin heredoc form to avoid shell escaping issues.
+
+Override rules (take precedence over `output_mode`):
+- User explicitly asks for PNG → Option A regardless of config
+- User explicitly asks for HTML → Option B regardless of config
+- Deps not installed / setup failed → Fallback (CDN template)
 
 ### Step 3: Return Result
 
-- On `RENDER_SUCCESS:` -- read the image path and return with markdown image syntax: `![Diagram](path.png)`
-- On `RENDER_DEGRADED:` -- return available outputs (SVG/HTML) and explain PNG was unavailable
-- On `RENDER_FAILED:` -- relay error, correct the Mermaid source, retry once
-- Option B output -- return the HTML file path and tell the user to open it in a browser
+| Script output | Action |
+|---------------|--------|
+| `RENDER_SUCCESS: <path>` | Read PNG, return with `![Diagram](path.png)` |
+| `RENDER_SUCCESS_HTML: <path>` | Return HTML path, tell user to open in browser |
+| `RENDER_DEGRADED:` | Return available outputs (SVG/HTML), explain PNG was unavailable |
+| `RENDER_FAILED:` | Relay error, correct Mermaid source, retry once |
+| Fallback (CDN) | Return HTML path, tell user to open in browser |
 
 ## Options
 

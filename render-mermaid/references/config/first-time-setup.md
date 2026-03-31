@@ -70,28 +70,12 @@ header: "Output"
 question: "Preferred output mode?"
 options:
   - label: "Script render (Recommended)"
-    description: "PNG/SVG via beautiful-mermaid + Chrome, best visual quality"
+    description: "PNG primary via beautiful-mermaid + Chrome, best for embedding in docs"
   - label: "Standalone HTML"
-    description: "CDN-based client-side rendering, zero dependencies, open in browser"
+    description: "HTML primary via beautiful-mermaid, no Chrome needed, open in browser"
 ```
 
-### Question 4: Standalone HTML Theme
-
-```yaml
-header: "HTML theme"
-question: "Default theme for standalone HTML output?"
-options:
-  - label: "default (Recommended)"
-    description: "Clean light theme, white background"
-  - label: "dark"
-    description: "Dark background with light text"
-  - label: "neutral"
-    description: "Muted grayscale, minimal color"
-  - label: "forest"
-    description: "Green-tinted nature palette"
-```
-
-### Question 5: Save Location
+### Question 4: Save Location
 
 ```yaml
 header: "Save"

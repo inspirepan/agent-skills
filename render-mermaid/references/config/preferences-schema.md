@@ -16,8 +16,8 @@ width: 2400                     # Viewport width in pixels
 html_padding: 40                # Padding around diagram in HTML wrapper (pixels)
 chrome_path: null                # Chrome/Chromium path override (null = auto-detect)
 output_mode: script              # Default output mode: script | standalone
-standalone_theme: default        # Mermaid built-in theme for standalone HTML
-standalone_background: "#ffffff" # Background color for standalone HTML
+standalone_theme: default        # Mermaid built-in theme for CDN fallback only
+standalone_background: "#ffffff" # Background color for CDN fallback only
 ---
 ```
 
@@ -26,14 +26,14 @@ standalone_background: "#ffffff" # Background color for standalone HTML
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `version` | int | 1 | Schema version |
-| `theme` | string | zinc-light | beautiful-mermaid theme |
+| `theme` | string | zinc-light | beautiful-mermaid theme (used by both script and standalone modes) |
 | `scale` | int | 2 | PNG scale factor |
 | `width` | int | 2400 | Viewport width |
 | `html_padding` | int | 40 | HTML wrapper padding |
 | `chrome_path` | string | null | Chrome executable path |
 | `output_mode` | string | script | Default mode: `script` or `standalone` |
-| `standalone_theme` | string | default | Mermaid built-in theme for standalone HTML |
-| `standalone_background` | string | #ffffff | Background color for standalone HTML |
+| `standalone_theme` | string | default | Mermaid built-in theme for CDN fallback only |
+| `standalone_background` | string | #ffffff | Background color for CDN fallback only |
 
 ## Available Themes
 
@@ -55,9 +55,9 @@ standalone_background: "#ffffff" # Background color for standalone HTML
 | `solarized-dark` | Solarized dark |
 | `one-dark` | Atom One Dark |
 
-## Standalone HTML Themes
+## Standalone HTML Themes (CDN Fallback)
 
-Mermaid built-in themes for standalone HTML output (Option B):
+Mermaid built-in themes for CDN fallback (when deps not installed):
 
 | Theme | Background | Description |
 |-------|------------|-------------|
