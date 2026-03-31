@@ -1,17 +1,18 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
-import { spawn } from "node:child_process";
-import { access, mkdir, writeFile } from "node:fs/promises";
+import { readFile, access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+const SKILL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MERMAID_PACKAGE = "beautiful-mermaid";
 const PUPPETEER_PACKAGE = "puppeteer-core";
-const SKILL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const DEPENDENCIES = [MERMAID_PACKAGE, PUPPETEER_PACKAGE];
 const MIN_EXPORT_WIDTH = 1600;
 const DEFAULT_THEME = "zinc-light";
 const DEFAULT_HTML_PADDING = 40;
+const DEFAULT_SCALE = 2;
+const DEFAULT_WIDTH = 2400;
+
 const THEME_ALIASES = {
   default: "zinc-light",
   solarized: "solarized-light",
@@ -30,105 +31,28 @@ function fail(message) {
   process.exit(1);
 }
 
-function isMissingPackageError(error) {
-  const message = error instanceof Error ? error.message : String(error);
-  return message.includes("Cannot find package") || message.includes("Cannot find module");
-}
+function parseConfig(filePath) {
+  // Synchronously not needed - we'll call this with awaited content
+  return readFile(filePath, "utf8").then((content) => {
+    const lines = content.split("\n");
+    if (lines[0].trim() !== "---") return {};
 
-function installHint(packageName) {
-  return `missing dependency \"${packageName}\": run \"cd ${SKILL_DIR} && bun install\" (or \"npm install --no-package-lock\") and retry`;
-}
-
-function installAllHint() {
-  return `run \"cd ${SKILL_DIR} && bun install\" (or \"npm install --no-package-lock\") and retry`;
-}
-
-async function findMissingDependencies() {
-  const missing = [];
-  for (const dep of DEPENDENCIES) {
-    const packageJsonPath = path.join(SKILL_DIR, "node_modules", dep, "package.json");
-    try {
-      await access(packageJsonPath);
-    } catch {
-      missing.push(dep);
-    }
-  }
-  return missing;
-}
-
-async function commandExists(command) {
-  return await new Promise((resolve) => {
-    const child = spawn(command, ["--version"], { stdio: "ignore" });
-    child.on("error", () => resolve(false));
-    child.on("exit", (code) => resolve(code === 0));
-  });
-}
-
-async function runInstall(command, args) {
-  return await new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      cwd: SKILL_DIR,
-      stdio: "inherit",
-    });
-    child.on("error", reject);
-    child.on("exit", (code) => {
-      if (code === 0) {
-        resolve();
-        return;
+    const config = {};
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim() === "---") break;
+      const match = lines[i].match(/^(\w[\w_-]*):\s*(.+)$/);
+      if (match) {
+        const key = match[1].trim();
+        let value = match[2].trim();
+        // Strip quotes
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+        config[key] = value;
       }
-      reject(new Error(`${command} ${args.join(" ")} failed with exit code ${code ?? "unknown"}`));
-    });
-  });
-}
-
-async function autoInstallDependencies(missing) {
-  const missingList = missing.join(", ");
-
-  const installers = process.versions.bun
-    ? [
-        { command: "bun", args: ["install"], label: "bun install" },
-        { command: "npm", args: ["install", "--no-package-lock"], label: "npm install --no-package-lock" },
-      ]
-    : [
-        { command: "npm", args: ["install", "--no-package-lock"], label: "npm install --no-package-lock" },
-        { command: "bun", args: ["install"], label: "bun install" },
-      ];
-
-  for (const installer of installers) {
-    if (!(await commandExists(installer.command))) {
-      continue;
     }
-    console.error(`Missing dependencies (${missingList}); running \"${installer.label}\" in ${SKILL_DIR}`);
-    await runInstall(installer.command, installer.args);
-    return;
-  }
-
-  fail(`dependencies not installed (${missingList}) and no package manager found (need bun or npm): ${installAllHint()}`);
-}
-
-async function assertDependenciesInstalled() {
-  const missing = await findMissingDependencies();
-
-  if (missing.length === 0) {
-    return;
-  }
-
-  try {
-    await autoInstallDependencies(missing);
-  } catch (error) {
-    fail(`failed to install dependencies automatically: ${error instanceof Error ? error.message : String(error)}`);
-  }
-
-  const remaining = await findMissingDependencies();
-
-  if (remaining.length > 0) {
-    fail(`dependencies still missing after auto-install (${remaining.join(", ")}): ${installAllHint()}`);
-  }
-}
-
-function formatLoadFailure(packageName, error) {
-  const message = error instanceof Error ? error.message : String(error);
-  return `failed to load ${packageName}: ${message}. If this is first use (or dependencies changed), ${installAllHint()}`;
+    return config;
+  });
 }
 
 function parseArgs(argv) {
@@ -137,9 +61,12 @@ function parseArgs(argv) {
     output: "",
     svgOutput: "",
     htmlOutput: "",
-    theme: DEFAULT_THEME,
-    htmlPadding: DEFAULT_HTML_PADDING,
+    theme: "",
+    htmlPadding: NaN,
     chromePath: "",
+    scale: NaN,
+    width: NaN,
+    config: "",
     help: false,
   };
 
@@ -170,61 +97,98 @@ function parseArgs(argv) {
       continue;
     }
     if (arg === "--theme") {
-      args.theme = argv[i + 1] ?? DEFAULT_THEME;
+      args.theme = argv[i + 1] ?? "";
       i += 1;
       continue;
     }
     if (arg === "--html-padding") {
-      const value = Number.parseInt(argv[i + 1] ?? "", 10);
-      args.htmlPadding = Number.isFinite(value) ? value : DEFAULT_HTML_PADDING;
+      args.htmlPadding = Number.parseInt(argv[i + 1] ?? "", 10);
       i += 1;
       continue;
     }
     if (arg === "--chrome-path") {
       args.chromePath = argv[i + 1] ?? "";
       i += 1;
+      continue;
+    }
+    if (arg === "--scale") {
+      args.scale = Number.parseFloat(argv[i + 1] ?? "");
+      i += 1;
+      continue;
+    }
+    if (arg === "--width") {
+      args.width = Number.parseInt(argv[i + 1] ?? "", 10);
+      i += 1;
+      continue;
+    }
+    if (arg === "--config") {
+      args.config = argv[i + 1] ?? "";
+      i += 1;
+      continue;
     }
   }
 
   return args;
 }
 
-const { mermaid, output, svgOutput, htmlOutput, theme, htmlPadding, chromePath, help } = parseArgs(process.argv.slice(2));
+const cliArgs = parseArgs(process.argv.slice(2));
 
-if (help) {
+if (cliArgs.help) {
   console.log(`Usage:
-  bun scripts/render_mermaid.js --output <OUTPUT_PATH>.png <<'MERMAID'
-  flowchart TD
-    A[Start] --> B[End]
-  MERMAID
-
-  node scripts/render_mermaid.js --output <OUTPUT_PATH>.png <<'MERMAID'
+  npx tsx scripts/render_mermaid.js --output <path.png> [options] <<'MERMAID'
   flowchart TD
     A[Start] --> B[End]
   MERMAID
 
 Options:
-  --output <path.png>      Required. Output PNG path.
-  --svg-output <path.svg>  Optional. Also write SVG output.
-  --html-output <path.html> Optional. Also write HTML wrapper output.
-  --theme <name>           Optional. Theme name (default: ${DEFAULT_THEME}).
-  --html-padding <pixels>  Optional. HTML wrapper padding (default: ${DEFAULT_HTML_PADDING}).
-  --mermaid <text>         Optional. Mermaid text (stdin is preferred).
-  --chrome-path <path>     Optional. Chrome/Chromium executable path.
-  --help, -h               Show this help message.
+  --output <path.png>       Output PNG path (requires Chrome).
+  --svg-output <path.svg>   Write SVG output.
+  --html-output <path.html> Write HTML wrapper output.
+  --theme <name>            Theme name (default: ${DEFAULT_THEME}).
+  --html-padding <pixels>   HTML wrapper padding (default: ${DEFAULT_HTML_PADDING}).
+  --scale <number>          Device scale factor for PNG (default: ${DEFAULT_SCALE}).
+  --width <number>          Viewport width for PNG (default: ${DEFAULT_WIDTH}).
+  --chrome-path <path>      Chrome/Chromium executable path.
+  --config <path>           Config file with YAML frontmatter defaults.
+  --mermaid <text>          Mermaid text (stdin is preferred).
+  --help, -h                Show this help message.
+
+Config file format (YAML frontmatter):
+  ---
+  theme: zinc-dark
+  chrome_path: /usr/bin/chromium
+  scale: 3
+  width: 3200
+  html_padding: 60
+  ---
 `);
   process.exit(0);
 }
 
+// Load config file if specified, then merge: config < CLI
+let config = {};
+if (cliArgs.config) {
+  try {
+    config = await parseConfig(path.resolve(cliArgs.config));
+  } catch (error) {
+    fail(`cannot read config file "${cliArgs.config}": ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+const theme = cliArgs.theme || config.theme || DEFAULT_THEME;
+const htmlPadding = Number.isFinite(cliArgs.htmlPadding) ? cliArgs.htmlPadding : (Number.isFinite(Number(config.html_padding)) ? Number(config.html_padding) : DEFAULT_HTML_PADDING);
+const scale = Number.isFinite(cliArgs.scale) ? cliArgs.scale : (Number.isFinite(Number(config.scale)) ? Number(config.scale) : DEFAULT_SCALE);
+const width = Number.isFinite(cliArgs.width) ? cliArgs.width : (Number.isFinite(Number(config.width)) ? Number(config.width) : DEFAULT_WIDTH);
+const chromePath = cliArgs.chromePath || config.chrome_path || "";
+const output = cliArgs.output;
+const svgOutput = cliArgs.svgOutput;
+const htmlOutput = cliArgs.htmlOutput;
+
 function resolveThemeName(rawTheme, themeMap) {
   const normalized = rawTheme.trim().toLowerCase();
-  if (themeMap[normalized]) {
-    return normalized;
-  }
+  if (themeMap[normalized]) return normalized;
   const alias = THEME_ALIASES[normalized];
-  if (alias && themeMap[alias]) {
-    return alias;
-  }
+  if (alias && themeMap[alias]) return alias;
   return "";
 }
 
@@ -280,18 +244,14 @@ async function resolveChromePath(explicitPath) {
       await access(candidate);
       return candidate;
     } catch {
-      // Ignore missing paths and continue searching.
+      // continue
     }
   }
-
   return "";
 }
 
 async function readMermaidFromStdin() {
-  if (process.stdin.isTTY) {
-    return "";
-  }
-
+  if (process.stdin.isTTY) return "";
   process.stdin.setEncoding("utf8");
   let content = "";
   for await (const chunk of process.stdin) {
@@ -300,132 +260,155 @@ async function readMermaidFromStdin() {
   return content;
 }
 
-const mermaidInput = mermaid || (await readMermaidFromStdin());
+// Read input
+const mermaidInput = cliArgs.mermaid || (await readMermaidFromStdin());
 
 if (!mermaidInput.trim()) {
   fail("missing Mermaid input: pass --mermaid or provide content via stdin");
 }
 
-if (!output) {
-  fail("missing required argument --output");
+const wantPng = Boolean(output);
+const wantSvg = Boolean(svgOutput);
+const wantHtml = Boolean(htmlOutput);
+
+if (!wantPng && !wantSvg && !wantHtml) {
+  fail("no output requested: specify at least one of --output, --svg-output, --html-output");
 }
 
-const outputPath = path.resolve(output);
-if (path.extname(outputPath).toLowerCase() !== ".png") {
-  fail("output must end with .png");
+// Validate output paths
+const outputPath = wantPng ? path.resolve(output) : "";
+if (outputPath && path.extname(outputPath).toLowerCase() !== ".png") {
+  fail("--output must end with .png");
 }
 
-const svgOutputPath = svgOutput ? path.resolve(svgOutput) : "";
+const svgOutputPath = wantSvg ? path.resolve(svgOutput) : "";
 if (svgOutputPath && path.extname(svgOutputPath).toLowerCase() !== ".svg") {
-  fail("svg output must end with .svg");
+  fail("--svg-output must end with .svg");
 }
 
-const htmlOutputPath = htmlOutput ? path.resolve(htmlOutput) : "";
+const htmlOutputPath = wantHtml ? path.resolve(htmlOutput) : "";
 if (htmlOutputPath && path.extname(htmlOutputPath).toLowerCase() !== ".html") {
-  fail("html output must end with .html");
+  fail("--html-output must end with .html");
 }
 
-await assertDependenciesInstalled();
-
-let renderMermaidSVG;
-let THEMES;
+// Load beautiful-mermaid
+let renderMermaidSVG, THEMES;
 try {
   ({ renderMermaidSVG, THEMES } = await import(MERMAID_PACKAGE));
 } catch (error) {
-  if (isMissingPackageError(error)) {
-    fail(installHint(MERMAID_PACKAGE));
-  }
-  fail(formatLoadFailure(MERMAID_PACKAGE, error));
+  fail(`cannot load ${MERMAID_PACKAGE}: ${error instanceof Error ? error.message : String(error)}. Run "cd ${SKILL_DIR} && npm install" to install dependencies.`);
 }
 
 if (typeof renderMermaidSVG !== "function") {
-  fail("renderMermaidSVG is not available in library");
+  fail("renderMermaidSVG is not available in " + MERMAID_PACKAGE);
 }
-
 if (!THEMES || typeof THEMES !== "object") {
-  fail("THEMES is not available in library");
+  fail("THEMES is not available in " + MERMAID_PACKAGE);
 }
 
 const resolvedThemeName = resolveThemeName(theme, THEMES);
 if (!resolvedThemeName) {
   const availableThemes = Object.keys(THEMES).sort().join(", ");
-  fail(`unknown theme \"${theme}\". Available themes: ${availableThemes}. Aliases: default, solarized`);
+  fail(`unknown theme "${theme}". Available: ${availableThemes}. Aliases: default, solarized`);
 }
 
 const themeColors = THEMES[resolvedThemeName];
 
-let puppeteer;
+// Render SVG
+let svg;
 try {
-  ({ default: puppeteer } = await import(PUPPETEER_PACKAGE));
+  svg = renderMermaidSVG(mermaidInput, themeColors);
 } catch (error) {
-  if (isMissingPackageError(error)) {
-    fail(installHint(PUPPETEER_PACKAGE));
-  }
-  fail(formatLoadFailure(PUPPETEER_PACKAGE, error));
+  fail(`SVG render failed: ${error instanceof Error ? error.message : String(error)}`);
 }
 
-const chromeExecutablePath = await resolveChromePath(chromePath);
-if (!chromeExecutablePath) {
-  fail("missing Chrome/Chromium executable: pass --chrome-path or set CHROME_PATH");
+const html = createHtmlWrapper(svg, themeColors.bg, htmlPadding);
+
+// Write SVG if requested
+if (svgOutputPath) {
+  await mkdir(path.dirname(svgOutputPath), { recursive: true });
+  await writeFile(svgOutputPath, svg, "utf8");
 }
 
-try {
-  const svg = renderMermaidSVG(mermaidInput, themeColors);
-  const html = createHtmlWrapper(svg, themeColors.bg, htmlPadding);
+// Write HTML if requested
+if (htmlOutputPath) {
+  await mkdir(path.dirname(htmlOutputPath), { recursive: true });
+  await writeFile(htmlOutputPath, html, "utf8");
+}
 
-  await mkdir(path.dirname(outputPath), { recursive: true });
-  if (svgOutputPath) {
-    await mkdir(path.dirname(svgOutputPath), { recursive: true });
-    await writeFile(svgOutputPath, svg, "utf8");
-  }
-  if (htmlOutputPath) {
-    await mkdir(path.dirname(htmlOutputPath), { recursive: true });
-    await writeFile(htmlOutputPath, html, "utf8");
+// PNG rendering via puppeteer-core + Chrome
+if (wantPng) {
+  let puppeteer;
+  try {
+    ({ default: puppeteer } = await import(PUPPETEER_PACKAGE));
+  } catch (error) {
+    // Degraded: SVG/HTML already written, but PNG not possible
+    if (svgOutputPath || htmlOutputPath) {
+      console.error(`RENDER_DEGRADED: svg-only -- cannot load ${PUPPETEER_PACKAGE}: ${error instanceof Error ? error.message : String(error)}. Run "cd ${SKILL_DIR} && npm install".`);
+      if (svgOutputPath) console.log(`RENDER_SUCCESS_SVG: ${svgOutputPath}`);
+      if (htmlOutputPath) console.log(`RENDER_SUCCESS_HTML: ${htmlOutputPath}`);
+      process.exit(0);
+    }
+    fail(`cannot load ${PUPPETEER_PACKAGE}: ${error instanceof Error ? error.message : String(error)}. Run "cd ${SKILL_DIR} && npm install" to install dependencies.`);
   }
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: chromeExecutablePath,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  const chromeExecutablePath = await resolveChromePath(chromePath);
+  if (!chromeExecutablePath) {
+    if (svgOutputPath || htmlOutputPath) {
+      console.error("RENDER_DEGRADED: svg-only -- no Chrome/Chromium found. Pass --chrome-path or set CHROME_PATH for PNG output.");
+      if (svgOutputPath) console.log(`RENDER_SUCCESS_SVG: ${svgOutputPath}`);
+      if (htmlOutputPath) console.log(`RENDER_SUCCESS_HTML: ${htmlOutputPath}`);
+      process.exit(0);
+    }
+    fail("no Chrome/Chromium found. Pass --chrome-path or set CHROME_PATH for PNG output.");
+  }
 
   try {
-    const page = await browser.newPage();
-    await page.setViewport({ width: 2400, height: 2400, deviceScaleFactor: 2 });
-    await page.setContent(html, { waitUntil: "networkidle0" });
-    await page.evaluate((minWidth) => {
-      const svgElement = document.querySelector(".container svg");
-      if (!svgElement) {
-        return;
-      }
+    await mkdir(path.dirname(outputPath), { recursive: true });
 
-      const { width } = svgElement.getBoundingClientRect();
-      if (width < minWidth) {
-        svgElement.style.width = `${minWidth}px`;
-        svgElement.style.height = "auto";
-        svgElement.style.maxWidth = "none";
-      }
-    }, MIN_EXPORT_WIDTH);
-    await page.evaluate(() => document.fonts?.ready ?? Promise.resolve());
-    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined))));
+    const browser = await puppeteer.launch({
+      headless: true,
+      executablePath: chromeExecutablePath,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
 
-    const containerElement = await page.$(".container");
-    if (!containerElement) {
-      throw new Error("rendered container is missing in page");
+    try {
+      const page = await browser.newPage();
+      await page.setViewport({ width, height: width, deviceScaleFactor: scale });
+      await page.setContent(html, { waitUntil: "networkidle0" });
+      await page.evaluate((minWidth) => {
+        const svgElement = document.querySelector(".container svg");
+        if (!svgElement) return;
+        const { width } = svgElement.getBoundingClientRect();
+        if (width < minWidth) {
+          svgElement.style.width = `${minWidth}px`;
+          svgElement.style.height = "auto";
+          svgElement.style.maxWidth = "none";
+        }
+      }, MIN_EXPORT_WIDTH);
+      await page.evaluate(() => document.fonts?.ready ?? Promise.resolve());
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined))));
+
+      const containerElement = await page.$(".container");
+      if (!containerElement) throw new Error("rendered container is missing in page");
+      await containerElement.screenshot({ path: outputPath, type: "png", omitBackground: false });
+    } finally {
+      await browser.close();
     }
-    await containerElement.screenshot({ path: outputPath, type: "png", omitBackground: false });
-  } finally {
-    await browser.close();
+  } catch (error) {
+    // PNG failed but SVG/HTML may have succeeded
+    if (svgOutputPath || htmlOutputPath) {
+      console.error(`RENDER_DEGRADED: svg-only -- PNG capture failed: ${error instanceof Error ? error.message : String(error)}`);
+      if (svgOutputPath) console.log(`RENDER_SUCCESS_SVG: ${svgOutputPath}`);
+      if (htmlOutputPath) console.log(`RENDER_SUCCESS_HTML: ${htmlOutputPath}`);
+      process.exit(0);
+    }
+    fail(`PNG capture failed: ${error instanceof Error ? error.message : String(error)}`);
   }
-
-  console.log(`RENDER_SUCCESS: ${outputPath}`);
-  console.log(`RENDER_THEME: ${resolvedThemeName}`);
-  if (svgOutputPath) {
-    console.log(`RENDER_SUCCESS_SVG: ${svgOutputPath}`);
-  }
-  if (htmlOutputPath) {
-    console.log(`RENDER_SUCCESS_HTML: ${htmlOutputPath}`);
-  }
-} catch (error) {
-  fail(`render failed: ${error instanceof Error ? error.message : String(error)}`);
 }
+
+// Report success
+if (outputPath) console.log(`RENDER_SUCCESS: ${outputPath}`);
+console.log(`RENDER_THEME: ${resolvedThemeName}`);
+if (svgOutputPath) console.log(`RENDER_SUCCESS_SVG: ${svgOutputPath}`);
+if (htmlOutputPath) console.log(`RENDER_SUCCESS_HTML: ${htmlOutputPath}`);

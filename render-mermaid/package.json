@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "beautiful-mermaid": "1.0.2",
-    "puppeteer-core": "24.37.5"
+    "beautiful-mermaid": "^1.0.2",
+    "puppeteer-core": "^24.37.5"
   }
 }
