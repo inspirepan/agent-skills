@@ -63,7 +63,35 @@ options:
     description: "Extra high resolution, large files"
 ```
 
-### Question 3: Save Location
+### Question 3: Output Mode
+
+```yaml
+header: "Output"
+question: "Preferred output mode?"
+options:
+  - label: "Script render (Recommended)"
+    description: "PNG/SVG via beautiful-mermaid + Chrome, best visual quality"
+  - label: "Standalone HTML"
+    description: "CDN-based client-side rendering, zero dependencies, open in browser"
+```
+
+### Question 4: Standalone HTML Theme
+
+```yaml
+header: "HTML theme"
+question: "Default theme for standalone HTML output?"
+options:
+  - label: "default (Recommended)"
+    description: "Clean light theme, white background"
+  - label: "dark"
+    description: "Dark background with light text"
+  - label: "neutral"
+    description: "Muted grayscale, minimal color"
+  - label: "forest"
+    description: "Green-tinted nature palette"
+```
+
+### Question 5: Save Location
 
 ```yaml
 header: "Save"
@@ -92,6 +120,9 @@ scale: 2
 width: 2400
 html_padding: 40
 chrome_path: null
+output_mode: script
+standalone_theme: default
+standalone_background: "#ffffff"
 ---
 ```
 

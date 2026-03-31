@@ -46,6 +46,8 @@ test -d "{SKILL_BASE_DIR}/node_modules/beautiful-mermaid" && echo "deps-ok" || e
 
 ### Step 2: Render
 
+**Option A: Full render via script** (PNG/SVG/HTML with beautiful-mermaid themes)
+
 ```bash
 cd "{SKILL_BASE_DIR}" && npx tsx scripts/render_mermaid.js \
   --output "<OUTPUT_PATH>.png" \
@@ -63,11 +65,39 @@ Pass `--config` pointing to the user's EXTEND.md for saved preferences. CLI args
 
 Use stdin heredoc form to avoid shell escaping issues.
 
+**Option B: Standalone HTML** (zero-dependency, CDN-based client-side rendering)
+
+Read the template at [references/templates/standalone.html](references/templates/standalone.html), substitute placeholders, and write the output file directly. No script execution needed.
+
+Use `standalone_theme` and `standalone_background` from EXTEND.md as defaults. CLI context or user instructions override config values.
+
+| Placeholder | EXTEND.md field | Default | Example |
+|-------------|-----------------|---------|---------|
+| `{{TITLE}}` | - | `Mermaid Diagram` | `Architecture Overview` |
+| `{{BACKGROUND}}` | `standalone_background` | `#ffffff` | `#1a1a2e` |
+| `{{MERMAID_CODE}}` | - | - | `flowchart TD ...` |
+| `{{MERMAID_THEME}}` | `standalone_theme` | `default` | `dark`, `neutral`, `forest` |
+
+Built-in Mermaid themes: `default` (light), `dark`, `neutral`, `forest`, `base`.
+
+When to use each option:
+
+| Scenario | Recommended |
+|----------|-------------|
+| EXTEND.md `output_mode: script` | Option A (default) |
+| EXTEND.md `output_mode: standalone` | Option B |
+| Need PNG output | Option A |
+| Need beautiful-mermaid themes | Option A |
+| Deps not installed / setup failed | Option B |
+| Quick preview or sharing | Option B |
+| User explicitly asks for HTML | Option B |
+
 ### Step 3: Return Result
 
 - On `RENDER_SUCCESS:` -- read the image path and return with markdown image syntax: `![Diagram](path.png)`
 - On `RENDER_DEGRADED:` -- return available outputs (SVG/HTML) and explain PNG was unavailable
 - On `RENDER_FAILED:` -- relay error, correct the Mermaid source, retry once
+- Option B output -- return the HTML file path and tell the user to open it in a browser
 
 ## Options
 

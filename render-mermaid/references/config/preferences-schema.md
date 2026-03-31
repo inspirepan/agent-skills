@@ -10,11 +10,14 @@ description: EXTEND.md YAML schema for render-mermaid user preferences
 ```yaml
 ---
 version: 1
-theme: zinc-light        # beautiful-mermaid theme name
-scale: 2                 # Device scale factor for PNG (1, 2, or 3)
-width: 2400              # Viewport width in pixels
-html_padding: 40         # Padding around diagram in HTML wrapper (pixels)
-chrome_path: null         # Chrome/Chromium path override (null = auto-detect)
+theme: zinc-light               # beautiful-mermaid theme name
+scale: 2                        # Device scale factor for PNG (1, 2, or 3)
+width: 2400                     # Viewport width in pixels
+html_padding: 40                # Padding around diagram in HTML wrapper (pixels)
+chrome_path: null                # Chrome/Chromium path override (null = auto-detect)
+output_mode: script              # Default output mode: script | standalone
+standalone_theme: default        # Mermaid built-in theme for standalone HTML
+standalone_background: "#ffffff" # Background color for standalone HTML
 ---
 ```
 
@@ -28,6 +31,9 @@ chrome_path: null         # Chrome/Chromium path override (null = auto-detect)
 | `width` | int | 2400 | Viewport width |
 | `html_padding` | int | 40 | HTML wrapper padding |
 | `chrome_path` | string | null | Chrome executable path |
+| `output_mode` | string | script | Default mode: `script` or `standalone` |
+| `standalone_theme` | string | default | Mermaid built-in theme for standalone HTML |
+| `standalone_background` | string | #ffffff | Background color for standalone HTML |
 
 ## Available Themes
 
@@ -48,6 +54,18 @@ chrome_path: null         # Chrome/Chromium path override (null = auto-detect)
 | `solarized-light` | Solarized light |
 | `solarized-dark` | Solarized dark |
 | `one-dark` | Atom One Dark |
+
+## Standalone HTML Themes
+
+Mermaid built-in themes for standalone HTML output (Option B):
+
+| Theme | Background | Description |
+|-------|------------|-------------|
+| `default` | `#ffffff` | Clean light theme |
+| `dark` | `#1a1a2e` | Dark background |
+| `neutral` | `#ffffff` | Muted grayscale |
+| `forest` | `#ffffff` | Green-tinted palette |
+| `base` | `#ffffff` | Minimal base theme |
 
 ## Theme Aliases
 
