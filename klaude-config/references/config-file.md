@@ -30,9 +30,9 @@ compact_model:
 sub_agent_models:
   finder: gpt-5.4-mini             # or a list for fallback
   general-purpose: sonnet
-  review: opus
+  code-reviewer: opus
   memory: sonnet
-  simplifier: sonnet
+  code-simplifier: sonnet
 
 # UI theme
 theme: dark
