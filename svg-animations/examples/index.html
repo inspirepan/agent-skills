@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SVG Animations · Demos</title>
+    <style>
+      :root {
+        --bg: #fafaf7;
+        --panel: #ffffff;
+        --ink: #1a1a1a;
+        --muted: #6b6b6b;
+        --line: #e8e6e0;
+        --accent: #c7522a;
+        --accent-2: #2f6f6f;
+        --accent-3: #b8860b;
+        --ok: #3a8a5c;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: ui-sans-serif, -apple-system, "Helvetica Neue", "PingFang SC", sans-serif;
+        font-feature-settings: "ss01", "cv01";
+        -webkit-font-smoothing: antialiased;
+        padding: 56px 24px 96px;
+      }
+      header {
+        max-width: 1080px;
+        margin: 0 auto 40px;
+      }
+      .eyebrow {
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+      h1 {
+        font-size: 36px;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        margin: 0 0 10px;
+        font-weight: 600;
+      }
+      header p {
+        color: var(--muted);
+        margin: 0;
+        max-width: 640px;
+        line-height: 1.6;
+      }
+      .grid {
+        max-width: 1080px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 16px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        transition: border-color 0.2s ease, transform 0.2s ease;
+      }
+      .card:hover { border-color: #d6d2c9; }
+      .stage {
+        aspect-ratio: 1/1;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at 50% 40%, #ffffff 0%, #f3f1ea 100%);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .stage svg { width: 72%; height: 72%; display: block; }
+      .meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .title { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+      .tag {
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 3px 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+      }
+      .desc { font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+      /* ---------- 1. Path draw ---------- */
+      .draw-path {
+        stroke-dasharray: 420;
+        stroke-dashoffset: 420;
+        animation: draw 3.2s ease-in-out infinite;
+      }
+      @keyframes draw {
+        0% { stroke-dashoffset: 420; }
+        55% { stroke-dashoffset: 0; }
+        95% { stroke-dashoffset: 0; opacity: 1; }
+        100% { stroke-dashoffset: 0; opacity: 0; }
+      }
+
+      /* ---------- 2. Check ---------- */
+      .check-circle {
+        stroke-dasharray: 163;
+        stroke-dashoffset: 163;
+        animation: drawOnce 0.7s ease forwards;
+      }
+      .check-mark {
+        stroke-dasharray: 40;
+        stroke-dashoffset: 40;
+        animation: drawOnce 0.45s ease 0.55s forwards;
+      }
+      @keyframes drawOnce { to { stroke-dashoffset: 0; } }
+      .card:hover .check-circle,
+      .card:hover .check-mark {
+        animation: none;
+        stroke-dashoffset: 163;
+      }
+      .card:hover .check-mark { stroke-dashoffset: 40; }
+      .card:hover .check-circle { animation: drawOnce 0.7s ease forwards; }
+      .card:hover .check-mark { animation: drawOnce 0.45s ease 0.55s forwards; }
+
+      /* ---------- 3. Spinner ---------- */
+      .spinner-ring {
+        transform-origin: center;
+        animation: spinRot 1.2s linear infinite;
+      }
+      .spinner-ring circle {
+        animation: spinDash 1.6s ease-in-out infinite;
+      }
+      @keyframes spinRot { to { transform: rotate(360deg); } }
+      @keyframes spinDash {
+        0%   { stroke-dasharray: 1 160; stroke-dashoffset: 0; }
+        50%  { stroke-dasharray: 90 160; stroke-dashoffset: -40; }
+        100% { stroke-dasharray: 90 160; stroke-dashoffset: -130; }
+      }
+
+      /* ---------- 4. Menu toggle (CSS) ---------- */
+      .menu-toggle { cursor: pointer; }
+      .menu-toggle path {
+        stroke: var(--ink);
+        stroke-width: 2;
+        stroke-linecap: round;
+        fill: none;
+        transition: transform 0.35s cubic-bezier(0.65, 0, 0.35, 1),
+                    opacity 0.2s ease;
+        transform-origin: center;
+      }
+      .menu-toggle .top { transform: translateY(-6px); }
+      .menu-toggle .bot { transform: translateY(6px); }
+      .menu-toggle.active .top { transform: translateY(0) rotate(45deg); }
+      .menu-toggle.active .mid { opacity: 0; }
+      .menu-toggle.active .bot { transform: translateY(0) rotate(-45deg); }
+
+      /* ---------- 5. Morph (SMIL inside) ---------- */
+
+      /* ---------- 6. Motion path ---------- */
+
+      /* ---------- 7. Gradient shift ---------- */
+
+      /* ---------- 8. Pulse ---------- */
+      .pulse-core { transform-origin: center; animation: pulseScale 2.2s ease-in-out infinite; }
+      .pulse-halo { transform-origin: center; animation: pulseHalo 2.2s ease-out infinite; }
+      @keyframes pulseScale {
+        0%, 100% { transform: scale(1); }
+        50%      { transform: scale(1.08); }
+      }
+      @keyframes pulseHalo {
+        0%   { transform: scale(0.9); opacity: 0.55; }
+        100% { transform: scale(2.1); opacity: 0; }
+      }
+
+      /* ---------- 9. Wave ---------- */
+
+      /* ---------- reduced motion ---------- */
+      @media (prefers-reduced-motion: reduce) {
+        *, svg * { animation: none !important; transition: none !important; }
+      }
+
+      footer {
+        max-width: 1080px;
+        margin: 48px auto 0;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+        display: flex;
+        justify-content: space-between;
+      }
+      a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); }
+      a:hover { border-color: var(--ink); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="eyebrow">svg · smil · css · demos</div>
+      <h1>SVG Animations</h1>
+      <p>
+        摘自 <a href="https://github.com/supermemoryai/skills/blob/main/svg-animations/SKILL.md" target="_blank" rel="noreferrer">supermemoryai/skills · svg-animations</a>。
+        九个可直接运行的小样例，覆盖描边绘制、形状变形、运动路径、SMIL 事件绑定等常用技法。
+      </p>
+    </header>
+
+    <section class="grid">
+
+      <!-- 1. Path drawing -->
+      <article class="card">
+        <div class="stage">
+          <svg viewBox="0 0 200 120" role="img" aria-label="path drawing">
+            <path class="draw-path"
+                  d="M 10 90 C 40 10, 70 10, 100 60 S 170 120, 190 30"
+                  fill="none" stroke="#1a1a1a" stroke-width="2.5"
+                  stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="meta">
+          <span class="title">Path drawing</span>
+          <span class="tag">CSS</span>
+        </div>
+        <p class="desc">
+          通过 <code>stroke-dasharray</code> + <code>stroke-dashoffset</code> 让路径“自我书写”。
+        </p>
+      </article>
+
+      <!-- 2. Checkmark -->
+      <article class="card">
+        <div class="stage">
+          <svg viewBox="0 0 52 52" role="img" aria-label="success check">
+            <circle class="check-circle" cx="26" cy="26" r="24"
+                    fill="none" stroke="#3a8a5c" stroke-width="2.5" />
+            <path class="check-mark" d="M14 27 l7 7 l16 -16"
+                  fill="none" stroke="#3a8a5c" stroke-width="3"
+                  stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <div class="meta">
+          <span class="title">Success check</span>
+          <span class="tag">CSS · stagger</span>
+        </div>
+        <p class="desc">
+          圆环先画，勾在 0.55s 后出现。悬停卡片可重播。
+        </p>
+      </article>
+
+      <!-- 3. Spinner -->
+      <article class="card">
+        <div class="stage">
+          <svg viewBox="0 0 50 50" role="img" aria-label="loading spinner">
+            <g class="spinner-ring">
+              <circle cx="25" cy="25" r="20" fill="none"
+                      stroke="#1a1a1a" stroke-width="3"
+                      stroke-linecap="round" />
+            </g>
+          </svg>
+        </div>
+        <div class="meta">
+          <span class="title">Loader</span>
+          <span class="tag">CSS</span>
+        </div>
+        <p class="desc">
+          整体旋转 + <code>dasharray</code> 呼吸，材质感比纯转圈更精细。
+        </p>
+      </article>
+
+      <!-- 4. Menu toggle -->
+      <article class="card">
+        <div class="stage">
+          <svg class="menu-toggle" viewBox="0 0 24 24" role="button"
+               tabindex="0" aria-label="menu toggle"
+               onclick="this.classList.toggle('active')"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.classList.toggle('active')}">
+            <path class="top" d="M 4 12 L 20 12" />
+            <path class="mid" d="M 4 12 L 20 12" />
+            <path class="bot" d="M 4 12 L 20 12" />
+          </svg>
+        </div>
+        <div class="meta">
+          <span class="title">Menu ↔ Close</span>
+          <span class="tag">interactive</span>
+        </div>
+        <p class="desc">
+          点击图标切换状态。三条线共享起点，靠 <code>transform</code> 制造视觉位移。
+        </p>
+      </article>
+
+      <!-- 5. Morph (SMIL) -->
+      <article class="card">
+        <div class="stage">
+          <svg viewBox="0 0 100 100" role="img" aria-label="shape morph">
+            <path fill="#c7522a">
+              <animate attributeName="d" dur="6s" repeatCount="indefinite"
+                       calcMode="spline"
+                       keyTimes="0; 0.25; 0.5; 0.75; 1"
+                       keySplines="0.65 0 0.35 1; 0.65 0 0.35 1; 0.65 0 0.35 1; 0.65 0 0.35 1"
+                       values="M 50,10 C 72,10 90,28 90,50 C 90,72 72,90 50,90 C 28,90 10,72 10,50 C 10,28 28,10 50,10 Z;
+                               M 50,15 C 75,15 85,35 85,50 C 85,65 75,85 50,85 C 25,85 15,65 15,50 C 15,35 25,15 50,15 Z;
+                               M 50,10 C 70,20 90,30 90,50 C 90,70 70,80 50,90 C 30,80 10,70 10,50 C 10,30 30,20 50,10 Z;
+                               M 50,20 C 80,20 80,40 80,50 C 80,60 80,80 50,80 C 20,80 20,60 20,50 C 20,40 20,20 50,20 Z;
+                               M 50,10 C 72,10 90,28 90,50 C 90,72 72,90 50,90 C 28,90 10,72 10,50 C 10,28 28,10 50,10 Z" />
+            </path>
+          </svg>
+        </div>
+        <div class="meta">
+          <span class="title">Shape morph</span>
+          <span class="tag">SMIL</span>
+        </div>
+        <p class="desc">
+          所有关键帧共用同构命令序列（8 个 C + Z）才能插值。
+        </p>
+      </article>
+
+      <!-- 6. Motion path -->
+      <article class="card">
+        <div class="stage">
+          <svg viewBox="0 0 160 100" role="img" aria-label="motion path">
+            <path id="motionTrack"
+                  d="M 10 70 C 40 10, 80 10, 100 50 S 140 90, 150 20"
+                  fill="none" stroke="#e8e6e0" stroke-width="1.5"
+                  stroke-dasharray="2 3" />
+            <polygon points="-6,-4 6,0 -6,4" fill="#2f6f6f">
+              <animateMotion dur="3.6s" repeatCount="indefinite" rotate="auto">
+                <mpath href="#motionTrack" />
+              </animateMotion>
+            </polygon>
+          </svg>
+        </div>
+        <div class="meta">
+          <span class="title">Motion path</span>
+          <span class="tag">SMIL · mpath</span>
+        </div>
+        <p class="desc">
+          三角形沿虚线轨迹运动，<code>rotate="auto"</code> 让朝向始终贴合切线。
+        </p>
+      </article>
+
+      <!-- 7. Gradient shift -->
+      <article class="card">
+        <div class="stage">
+          <svg viewBox="0 0 200 120" role="img" aria-label="gradient shift">
+            <defs>
+              <linearGradient id="shift" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%">
+                  <animate attributeName="stop-color"
+                           values="#c7522a;#2f6f6f;#b8860b;#c7522a"
+                           dur="6s" repeatCount="indefinite" />
+                </stop>
+                <stop offset="100%">
+                  <animate attributeName="stop-color"
+                           values="#2f6f6f;#b8860b;#c7522a;#2f6f6f"
+                           dur="6s" repeatCount="indefinite" />
+                </stop>
+              </linearGradient>
+            </defs>
+            <rect x="10" y="20" width="180" height="80" rx="10"
+                  fill="url(#shift)" />
+          </svg>
+        </div>
+        <div class="meta">
+          <span class="title">Gradient shift</span>
+          <span class="tag">SMIL</span>
+        </div>
+        <p class="desc">
+          在 <code>&lt;stop&gt;</code> 上直接动画 <code>stop-color</code>，渐变沿色环流动。
+        </p>
+      </article>
+
+      <!-- 8. Pulse -->
+      <article class="card">
+        <div class="stage">
+          <svg viewBox="0 0 120 120" role="img" aria-label="pulse">
+            <circle class="pulse-halo" cx="60" cy="60" r="20" fill="#c7522a" opacity="0.5" />
+            <circle class="pulse-halo" cx="60" cy="60" r="20" fill="#c7522a" opacity="0.3"
+                    style="animation-delay: 0.6s" />
+            <circle class="pulse-core" cx="60" cy="60" r="16" fill="#c7522a" />
+          </svg>
+        </div>
+        <div class="meta">
+          <span class="title">Pulse</span>
+          <span class="tag">CSS</span>
+        </div>
+        <p class="desc">
+          双层光晕交替扩散 + 核心呼吸缩放，常用于“在线/正在录制”指示。
+        </p>
+      </article>
+
+      <!-- 9. Wave -->
+      <article class="card">
+        <div class="stage">
+          <svg viewBox="0 0 200 100" role="img" aria-label="wave"
+               preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="waveFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#2f6f6f" stop-opacity="0.85" />
+                <stop offset="100%" stop-color="#2f6f6f" stop-opacity="0.15" />
+              </linearGradient>
+            </defs>
+            <path fill="url(#waveFill)">
+              <animate attributeName="d" dur="5s" repeatCount="indefinite"
+                       calcMode="spline"
+                       keyTimes="0; 0.5; 1"
+                       keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
+                       values="M 0,55 C 40,35 80,75 120,55 C 160,35 180,65 200,50 L 200,100 L 0,100 Z;
+                               M 0,55 C 40,75 80,35 120,55 C 160,75 180,45 200,60 L 200,100 L 0,100 Z;
+                               M 0,55 C 40,35 80,75 120,55 C 160,35 180,65 200,50 L 200,100 L 0,100 Z" />
+            </path>
+            <path fill="#2f6f6f" opacity="0.35">
+              <animate attributeName="d" dur="7s" repeatCount="indefinite"
+                       calcMode="spline"
+                       keyTimes="0; 0.5; 1"
+                       keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
+                       values="M 0,70 C 50,60 100,80 150,70 C 180,64 190,72 200,68 L 200,100 L 0,100 Z;
+                               M 0,70 C 50,80 100,60 150,70 C 180,76 190,66 200,72 L 200,100 L 0,100 Z;
+                               M 0,70 C 50,60 100,80 150,70 C 180,64 190,72 200,68 L 200,100 L 0,100 Z" />
+            </path>
+          </svg>
+        </div>
+        <div class="meta">
+          <span class="title">Liquid wave</span>
+          <span class="tag">SMIL · morph</span>
+        </div>
+        <p class="desc">
+          两层不同相位的贝塞尔路径在 <code>d</code> 之间插值，制造液体流动感。
+        </p>
+      </article>
+
+    </section>
+
+    <footer>
+      <span>viewBox-first · prefers-reduced-motion 已尊重</span>
+      <span>open <code>index.html</code></span>
+    </footer>
+  </body>
+</html>
