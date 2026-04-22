@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate or edit images with the OpenAI Image API.
 
-Defaults to gpt-image-1.5 and a structured prompt augmentation workflow.
+Defaults to gpt-image-2 and a structured prompt augmentation workflow.
 """
 
 from __future__ import annotations
@@ -20,14 +20,19 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-DEFAULT_MODEL = "gpt-image-1.5"
+DEFAULT_MODEL = "gpt-image-2"
 DEFAULT_SIZE = "1024x1024"
 DEFAULT_QUALITY = "auto"
 DEFAULT_OUTPUT_FORMAT = "png"
 DEFAULT_CONCURRENCY = 5
 DEFAULT_DOWNSCALE_SUFFIX = "-web"
 
-ALLOWED_SIZES = {"1024x1024", "1536x1024", "1024x1536", "auto"}
+# gpt-image-2 accepts arbitrary WxH; older GPT Image models require one of
+# these fixed sizes.
+LEGACY_ALLOWED_SIZES = {"1024x1024", "1536x1024", "1024x1536", "auto"}
+# Outputs above this pixel count are flagged as experimental for gpt-image-2
+# (roughly 2560x1440).
+GPT_IMAGE_2_EXPERIMENTAL_PIXELS = 2560 * 1440
 ALLOWED_QUALITIES = {"low", "medium", "high", "auto"}
 ALLOWED_BACKGROUNDS = {"transparent", "opaque", "auto", None}
 
@@ -89,9 +94,24 @@ def _normalize_output_format(fmt: str | None) -> str:
     return "jpeg" if fmt == "jpg" else fmt
 
 
-def _validate_size(size: str) -> None:
-    if size not in ALLOWED_SIZES:
-        _die("size must be one of 1024x1024, 1536x1024, 1024x1536, or auto for GPT image models.")
+def _validate_size(size: str, model: str) -> None:
+    if size == "auto":
+        return
+    if _is_gpt_image_2(model):
+        if not re.fullmatch(r"\d{2,5}x\d{2,5}", size):
+            _die(f"size must be WxH (e.g. 1024x1024) or auto for {model}.")
+        w, h = (int(v) for v in size.split("x"))
+        if w * h > GPT_IMAGE_2_EXPERIMENTAL_PIXELS:
+            _warn(f"size {size} exceeds 2560x1440 total pixels; gpt-image-2 treats this as experimental.")
+        return
+    if size not in LEGACY_ALLOWED_SIZES:
+        _die(f"size must be one of 1024x1024, 1536x1024, 1024x1536, or auto for {model}.")
+
+
+def _is_gpt_image_2(model: str) -> bool:
+    # Covers the alias `gpt-image-2` and dated snapshots like
+    # `gpt-image-2-2026-04-21`.
+    return model.startswith("gpt-image-2")
 
 
 def _validate_quality(quality: str) -> None:
@@ -99,9 +119,14 @@ def _validate_quality(quality: str) -> None:
         _die("quality must be one of low, medium, high, or auto.")
 
 
-def _validate_background(background: str | None) -> None:
+def _validate_background(background: str | None, model: str) -> None:
     if background not in ALLOWED_BACKGROUNDS:
         _die("background must be one of transparent, opaque, or auto.")
+    if background == "transparent" and _is_gpt_image_2(model):
+        _die(
+            "gpt-image-2 does not support transparent backgrounds. "
+            "Re-run with --model gpt-image-1.5 (or gpt-image-1-mini) for transparent output."
+        )
 
 
 def _validate_transparency(background: str | None, output_format: str) -> None:
@@ -116,9 +141,10 @@ def _validate_generate_payload(payload: dict[str, Any]) -> None:
     size = str(payload.get("size", DEFAULT_SIZE))
     quality = str(payload.get("quality", DEFAULT_QUALITY))
     background = payload.get("background")
-    _validate_size(size)
+    model = str(payload.get("model", DEFAULT_MODEL))
+    _validate_size(size, model)
     _validate_quality(quality)
-    _validate_background(background)
+    _validate_background(background, model)
     oc = payload.get("output_compression")
     if oc is not None and not (0 <= int(oc) <= 100):
         _die("output_compression must be between 0 and 100")
@@ -656,6 +682,11 @@ def _edit(args: argparse.Namespace) -> None:
         if mask_path.stat().st_size > MAX_IMAGE_BYTES:
             _warn(f"Mask exceeds 50MB limit: {mask_path}")
 
+    input_fidelity = args.input_fidelity
+    if input_fidelity and _is_gpt_image_2(args.model):
+        _warn(f"{args.model} always processes inputs at high fidelity; dropping --input-fidelity.")
+        input_fidelity = None
+
     payload = {
         "model": args.model,
         "prompt": prompt,
@@ -665,7 +696,7 @@ def _edit(args: argparse.Namespace) -> None:
         "background": args.background,
         "output_format": args.output_format,
         "output_compression": args.output_compression,
-        "input_fidelity": args.input_fidelity,
+        "input_fidelity": input_fidelity,
         "moderation": args.moderation,
     }
     payload = {k: v for k, v in payload.items() if v is not None}
@@ -838,9 +869,9 @@ def main() -> int:
     if getattr(args, "downscale_max_dim", None) is not None and args.downscale_max_dim < 1:
         _die("--downscale-max-dim must be >= 1")
 
-    _validate_size(args.size)
+    _validate_size(args.size, args.model)
     _validate_quality(args.quality)
-    _validate_background(args.background)
+    _validate_background(args.background, args.model)
     _ensure_api_key(args.dry_run)
 
     args.func(args)

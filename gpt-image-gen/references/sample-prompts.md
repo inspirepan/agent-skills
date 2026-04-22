@@ -206,6 +206,7 @@ Background: transparent
 Lighting/mood: subtle highlights; crisp edges
 Constraints: no text; no logos or trademarks; no watermark
 ```
+Note: transparent background requires `--model gpt-image-1.5` (or `gpt-image-1-mini`); `gpt-image-2` does not support transparent output.
 
 ### Game assets example: tileable texture
 ```
@@ -356,6 +357,7 @@ Primary request: extract the product on a transparent background
 Output: transparent background (RGBA PNG)
 Constraints: crisp silhouette, no halos/fringing; preserve label text exactly; no restyling
 ```
+Note: requires `--model gpt-image-1.5` (or `gpt-image-1-mini`); `gpt-image-2` does not support transparent backgrounds.
 
 ### style-transfer
 ```

@@ -7,7 +7,7 @@ license: "Apache License 2.0"
 
 # Image Generation Skill
 
-Generates or edits images for the current project (e.g., website assets, game assets, UI mockups, product mockups, wireframes, logo design, photorealistic images, infographics). Defaults to `gpt-image-1.5` and the OpenAI Image API, and prefers the bundled CLI for deterministic, reproducible runs.
+Generates or edits images for the current project (e.g., website assets, game assets, UI mockups, product mockups, wireframes, logo design, photorealistic images, infographics). Defaults to `gpt-image-2` and the OpenAI Image API, and prefers the bundled CLI for deterministic, reproducible runs.
 
 ## When to use
 - Generate a new image (concept art, product shot, cover, website hero)
@@ -58,14 +58,19 @@ If the key is missing, give the user these steps:
 If installation isn't possible in this environment, tell the user which dependency is missing and how to install it locally.
 
 ## Defaults & rules
-- Use `gpt-image-1.5` unless the user explicitly asks for `gpt-image-1-mini` or explicitly prefers a cheaper/faster model.
+- Use `gpt-image-2` unless one of the model-selection rules below applies.
 - Assume the user wants a new image unless they explicitly ask for an edit.
 - Require `OPENAI_API_KEY` before any live API call.
 - Use the OpenAI Python SDK (`openai` package) for all API calls; do not use raw HTTP.
 - If the user requests edits, use `client.images.edit(...)` and include input images (and mask if provided).
 - Prefer the bundled CLI (`scripts/image_gen.py`) over writing new one-off scripts.
 - Never modify `scripts/image_gen.py`. If something is missing, ask the user before doing anything else.
-- If the result isn’t clearly relevant or doesn’t satisfy constraints, iterate with small targeted prompt changes; only ask a question if a missing detail blocks success.
+- If the result isn't clearly relevant or doesn't satisfy constraints, iterate with small targeted prompt changes; only ask a question if a missing detail blocks success.
+
+## Model selection
+- Default: `gpt-image-2` — supports arbitrary image sizes and always processes image inputs at high fidelity. It does **not** support transparent backgrounds or the `input_fidelity` parameter.
+- Fall back to `gpt-image-1.5` when the request needs a transparent background (the `background-extraction` use case) or explicit `input_fidelity` control. The CLI will refuse `--background transparent` on `gpt-image-2` and will drop `--input-fidelity` with a warning.
+- Use `gpt-image-1-mini` when the user explicitly prefers a faster, cheaper run.
 
 ## Prompt augmentation
 Reformat user prompts into a structured, production-oriented spec. Only make implicit details explicit; do not invent new requirements.
@@ -88,7 +93,7 @@ Edit:
 - identity-preserve — try-on, person-in-scene; lock face/body/pose.
 - precise-object-edit — remove/replace a specific element (incl. interior swaps).
 - lighting-weather — time-of-day/season/atmosphere changes only.
-- background-extraction — transparent background / clean cutout.
+- background-extraction — transparent background / clean cutout. (Requires `--model gpt-image-1.5` since `gpt-image-2` does not support transparent output.)
 - style-transfer — apply reference style while changing subject/scene.
 - compositing — multi-image insert/merge with matched lighting/perspective.
 - sketch-to-render — drawing/line art to photoreal render.
@@ -154,7 +159,7 @@ Constraints: change only the background; keep the product and its edges unchange
 - For edits, repeat invariants every iteration to reduce drift.
 - Iterate with single-change follow-ups.
 - For latency-sensitive runs, start with quality=low; use quality=high for text-heavy or detail-critical outputs.
-- For strict edits (identity/layout lock), consider input_fidelity=high.
+- For strict edits (identity/layout lock) on `gpt-image-1.5`/`gpt-image-1-mini`, consider input_fidelity=high. `gpt-image-2` always processes inputs at high fidelity and ignores this parameter.
 - If results feel “tacky”, add a brief “Avoid:” line (stock-photo vibe; cheesy lens flare; oversaturated neon; harsh bloom; oversharpening; clutter) and specify restraint (“editorial”, “premium”, “subtle”).
 
 More principles: `references/prompting.md`. Copy/paste specs: `references/sample-prompts.md`.
