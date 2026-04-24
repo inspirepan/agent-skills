@@ -13,7 +13,10 @@ Example reference (auto-generated on first run): `~/.klaude/klaude-config.exampl
 
 ```yaml
 # Main model for the agent loop
-main_model: opus                    # or "sonnet@openrouter" (provider-qualified)
+main_model:
+- gpt-5.5
+- gpt-5.4
+- opus                              # or use a single provider-qualified selector like "sonnet@openrouter"
 
 # Fallback list for fast tasks (first available wins)
 fast_model:
@@ -58,8 +61,13 @@ provider_list:
 | Unqualified | `sonnet` | First provider with valid credentials |
 | Provider-qualified | `sonnet@openrouter` | Specific provider only |
 | With variant | `sonnet:no-thinking` | Model variant (defined in provider config) |
+| Preference list | `[gpt-5.5, gpt-5.4, opus]` | Try matching providers for each entry in order, then move to the next entry |
 
 Use `klaude list` to see all configured models and their availability.
+
+When a selector is unqualified, klaude expands it across matching providers in `provider_list` order. For example, `gpt-5.4` can resolve through `openai`, `github-copilot`, and `openrouter` before falling through to the next model in the list.
+
+The `/model` slash command still updates the saved default `main_model`, but it preserves fallback order: if the selected model is already in the list it is moved to the front, otherwise it is inserted at the front.
 
 ## API Key Resolution
 

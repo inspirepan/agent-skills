@@ -14,8 +14,8 @@ Quick reference for klaude-code's configuration system, skill management, and me
 Config file: `~/.klaude/klaude-config.yaml`
 
 ```yaml
-main_model: opus                    # or "sonnet@openrouter"
-fast_model: [gpt-5.4-nano, haiku]   # fallback list, first available wins
+main_model: [gpt-5.5, gpt-5.4, opus] # fallback list; provider order is expanded first
+fast_model: [gpt-5.4-nano, haiku]    # fallback list, first available wins
 compact_model: [gemini-flash, sonnet:no-thinking]
 sub_agent_models:
   finder: gpt-5.4-mini
@@ -34,6 +34,9 @@ provider_list:
 
 Key points:
 - `model@provider` pins to a specific provider; unqualified picks first with valid credentials.
+- `main_model`, `fast_model`, `compact_model`, and sub-agent model values can be a string or a fallback list.
+- For an unqualified entry like `gpt-5.4`, klaude tries matching providers in `provider_list` order before moving to the next model in the list.
+- `/model` updates `main_model` while preserving fallback order: the selected model is moved or inserted to the front of the list.
 - `${ENV_VAR}` resolves from env, then `~/.klaude/klaude-auth.json`. Multi-fallback: `${A|B}`.
 - User config merges with builtin config (user wins per field). Only overrides are saved.
 - `klaude list` shows all models and availability.
