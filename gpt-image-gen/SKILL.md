@@ -7,43 +7,59 @@ license: "Apache License 2.0"
 
 # Image Generation Skill
 
-Generates or edits images for the current project (e.g., website assets, game assets, UI mockups, product mockups, wireframes, logo design, photorealistic images, infographics). Defaults to `gpt-image-2` and the OpenAI Image API, and prefers the bundled CLI for deterministic, reproducible runs.
+Generates or edits raster images for the current project (e.g., website assets, game assets, UI mockups, product mockups, wireframes, logo design, photorealistic images, infographics). Defaults to `gpt-image-2` and the OpenAI Image API through the bundled CLI for deterministic, reproducible runs.
 
 ## When to use
 - Generate a new image (concept art, product shot, cover, website hero)
+- Generate a new image using one or more reference images for style, composition, mood, or subject guidance
 - Edit an existing image (inpainting, masked edits, lighting or weather transformations, background replacement, object removal, compositing, transparent background)
 - Batch runs (many prompts, or many variants across prompts)
 
+## When not to use
+- Extending or matching an existing SVG/vector icon set, logo system, or illustration library inside the repo
+- Creating simple shapes, diagrams, wireframes, or icons that are better produced directly in SVG, HTML/CSS, or canvas
+- Making a small project-local asset edit when the source file already exists in an editable native format
+- Any task where the user clearly wants deterministic code-native output instead of a generated bitmap
+
 ## Decision tree (generate vs edit vs batch)
-- If the user provides an input image (or says “edit/retouch/inpaint/mask/translate/localize/change only X”) → **edit**
-- Else if the user needs many different prompts/assets → **generate-batch**
-- Else → **generate**
+Think about two separate questions: intent and execution strategy.
+
+Intent:
+- If the user wants to modify an existing image while preserving parts of it, treat the request as **edit**.
+- If the user provides images only as references for style, composition, mood, or subject guidance, treat the request as **generate** with references.
+- If the user provides no images, treat the request as **generate**.
+
+Execution strategy:
+- If the user needs many different prompts/assets, use **generate-batch**.
+- If the user needs variants of one prompt, use `--n`.
+- Otherwise, use **generate** or **edit** for a single asset.
+
+Assume the user wants a new image unless they clearly ask to change an existing one.
 
 ## Workflow
-1. Decide intent: generate vs edit vs batch (see decision tree above).
-2. Collect inputs up front: prompt(s), exact text (verbatim), constraints/avoid list, and any input image(s)/mask(s). For multi-image edits, label each input by index and role; for edits, list invariants explicitly.
-3. If batch: write a temporary JSONL under tmp/ (one job per line), run once, then delete the JSONL.
-4. Augment prompt into a short labeled spec (structure + constraints) without inventing new creative requirements.
-5. Run the bundled CLI (`scripts/image_gen.py`) with sensible defaults (see references/cli.md).
-6. For complex edits/generations, inspect outputs (open/view images) and validate: subject, style, composition, text accuracy, and invariants/avoid items.
-7. Iterate: make a single targeted change (prompt or mask), re-run, re-check.
-8. Save/return final outputs and note the final prompt + flags used.
+1. Confirm the request calls for a generated raster image rather than repo-native SVG/vector/code output.
+2. Decide intent: generate vs edit, and decide the execution strategy: single asset, variants with `--n`, or batch JSONL.
+3. Collect inputs up front: prompt(s), exact text (verbatim), constraints/avoid list, and any input image(s)/mask(s).
+4. For every input image, label its role explicitly: reference image, edit target, or supporting insert/style/compositing input.
+5. If batch: write a temporary JSONL under `tmp/imagegen/` (one job per line), run once, then delete the JSONL.
+6. Augment prompt into a short labeled spec (structure + constraints) without inventing new creative requirements.
+7. Run the bundled CLI (`scripts/image_gen.py`) with sensible defaults (see `references/cli.md`).
+8. For complex edits/generations, inspect outputs and validate: subject, style, composition, text accuracy, and invariants/avoid items.
+9. Iterate with a single targeted change (prompt, mask, model, size, or quality), then re-check.
+10. Save/return final outputs and note the final prompt + important flags used.
 
 ## Temp and output conventions
-- Use `tmp/imagegen/` for intermediate files (for example JSONL batches); delete when done.
+- Use `tmp/imagegen/` for intermediate files (for example JSONL batches); delete them when done.
 - Write final artifacts under `output/imagegen/` when working in this repo.
 - Use `--out` or `--out-dir` to control output paths; keep filenames stable and descriptive.
+- Do not overwrite an existing asset unless the user explicitly asked for replacement; otherwise create a sibling versioned filename such as `hero-v2.png` or `item-icon-edited.png`.
 
 ## Dependencies (install if missing)
 Prefer `uv` for dependency management.
 
 Python packages:
 ```
-uv pip install openai pillow
-```
-If `uv` is unavailable:
-```
-python3 -m pip install openai pillow
+uv add openai pillow
 ```
 
 ## Environment
@@ -68,12 +84,27 @@ If installation isn't possible in this environment, tell the user which dependen
 - If the result isn't clearly relevant or doesn't satisfy constraints, iterate with small targeted prompt changes; only ask a question if a missing detail blocks success.
 
 ## Model selection
-- Default: `gpt-image-2` — supports arbitrary image sizes and always processes image inputs at high fidelity. It does **not** support transparent backgrounds or the `input_fidelity` parameter.
+- Default: `gpt-image-2` — supports flexible image sizes and always processes image inputs at high fidelity. Explicit `WxH` sizes must have both width and height divisible by 16 (for example `2256x960`, not `2350x1000`). It does **not** support transparent backgrounds or the `input_fidelity` parameter.
 - Fall back to `gpt-image-1.5` when the request needs a transparent background (the `background-extraction` use case) or explicit `input_fidelity` control. The CLI will refuse `--background transparent` on `gpt-image-2` and will drop `--input-fidelity` with a warning.
 - Use `gpt-image-1-mini` when the user explicitly prefers a faster, cheaper run.
 
 ## Prompt augmentation
-Reformat user prompts into a structured, production-oriented spec. Only make implicit details explicit; do not invent new requirements.
+Reformat user prompts into a structured, production-oriented spec. Make the user's goal clearer and more actionable, but do not blindly add detail.
+
+Specificity policy:
+- If the user's prompt is already specific and detailed, preserve that specificity and only normalize/structure it.
+- If the user's prompt is generic, add tasteful augmentation only when it materially improves output quality.
+
+Allowed augmentations:
+- composition or framing hints
+- polish level or intended-use hints
+- practical layout guidance
+- reasonable scene concreteness that supports the stated request
+
+Do not add:
+- extra characters, props, or objects that are not implied by the request
+- brand names, slogans, palettes, or narrative beats that are not implied
+- arbitrary side-specific placement unless the surrounding layout supports it
 
 ## Use-case taxonomy (exact slugs)
 Classify each request into one of these buckets and keep the slug consistent across prompts and references.
@@ -107,7 +138,8 @@ Template (include only relevant lines):
 Use case: <taxonomy slug>
 Asset type: <where the asset will be used>
 Primary request: <user's main prompt>
-Scene/background: <environment>
+Input images: <Image 1: role; Image 2: role> (optional)
+Scene/backdrop: <visual environment>
 Subject: <main subject>
 Style/medium: <photo/illustration/3D/etc>
 Composition/framing: <wide/close/top-down; placement>
@@ -121,8 +153,13 @@ Constraints: <must keep/must avoid>
 Avoid: <negative constraints>
 ```
 
+Notes:
+- `Scene/backdrop` is the visual setting in the prompt. It is not the same as the CLI/API `--background` parameter, which controls output transparency behavior.
+- `Quality`, `Input fidelity`, masks, output format, and output paths are CLI/API execution controls. Use them as flags when needed, not as creative prompt content.
+
 Augmentation rules:
-- Keep it short; add only details the user already implied or provided elsewhere.
+- Keep it short.
+- Add only the details needed to improve the prompt materially.
 - Always classify the request into a taxonomy slug above and tailor constraints/composition/quality to that bucket. Use the slug to find the matching example in `references/sample-prompts.md`.
 - If the user gives a broad request (e.g., "Generate images for this website"), use judgment to propose tasteful, context-appropriate assets and map each to a taxonomy slug.
 - For edits, explicitly list invariants ("change only X; keep Y unchanged").
@@ -150,7 +187,7 @@ Constraints: change only the background; keep the product and its edges unchange
 ```
 
 ## Prompting best practices (short list)
-- Structure prompt as scene -> subject -> details -> constraints.
+- Structure prompt as scene/backdrop -> subject -> details -> constraints.
 - Include intended use (ad, UI mock, infographic) to set the mode and polish level.
 - Use camera/composition language for photorealism.
 - Quote exact text and specify typography + placement.

@@ -2,23 +2,42 @@
 
 ## Contents
 - [Structure](#structure)
-- [Specificity](#specificity)
+- [Specificity policy](#specificity-policy)
+- [Allowed and disallowed augmentation](#allowed-and-disallowed-augmentation)
 - [Avoiding “tacky” outputs](#avoiding-tacky-outputs)
 - [Composition & layout](#composition--layout)
 - [Constraints & invariants](#constraints--invariants)
 - [Text in images](#text-in-images)
-- [Multi-image inputs](#multi-image-inputs)
+- [Input images and references](#input-images-and-references)
 - [Iterate deliberately](#iterate-deliberately)
 - [Quality vs latency](#quality-vs-latency)
 - [Use-case tips](#use-case-tips)
 - [Where to find copy/paste recipes](#where-to-find-copypaste-recipes)
 
 ## Structure
-- Use a consistent order: scene/background -> subject -> key details -> constraints -> output intent.
-- Include intended use (ad, UI mock, infographic) to set the mode and polish level.
+- Use a consistent order: scene/backdrop -> subject -> key details -> constraints -> output intent.
+- Include intended use (ad, UI mock, infographic) to set the level of polish.
 - For complex requests, use short labeled lines instead of a long paragraph.
 
-## Specificity
+## Specificity policy
+- If the user prompt is already specific and detailed, normalize it into a clean spec without adding creative requirements.
+- If the prompt is generic, you may add tasteful detail when it materially improves the output.
+- Treat examples in `sample-prompts.md` as fully-authored recipes, not as the default amount of augmentation to add to every request.
+
+## Allowed and disallowed augmentation
+
+Allowed augmentation for generic prompts:
+- composition and framing cues
+- intended-use or polish-level hints
+- practical layout guidance
+- reasonable scene concreteness that supports the request
+
+Do not add:
+- extra characters, props, or objects that are not implied
+- brand palettes, slogans, or story beats that are not implied
+- arbitrary side-specific placement unless the surrounding layout supports it
+
+## Visual specificity
 - Name materials, textures, and visual medium (photo, watercolor, 3D render).
 - For photorealism, include camera/composition language (lens, framing, lighting).
 - Add targeted quality cues only when needed (film grain, textured brushstrokes, macro detail); avoid generic "8K" style prompts.
@@ -30,8 +49,9 @@
 - Add a short negative line when needed (especially for marketing art): “Avoid: stock-photo vibe; cheesy lens flare; oversaturated neon; excessive bokeh; fake-looking smiles; clutter”.
 
 ## Composition & layout
-- Specify framing and viewpoint (close-up, wide, top-down) and placement ("logo top-right").
-- Call out negative space if you need room for UI or overlays.
+- Specify framing and viewpoint (close-up, wide, top-down) and placement only when it materially helps.
+- Call out negative space if the asset clearly needs room for UI or copy.
+- Avoid making left/right layout decisions unless the user or surrounding layout supports them.
 
 ## Constraints & invariants
 - State what must not change ("keep background unchanged").
@@ -42,14 +62,17 @@
 - Spell uncommon words letter-by-letter if accuracy matters.
 - For in-image copy, require verbatim rendering and no extra characters.
 
-## Multi-image inputs
-- Reference inputs by index and role ("Image 1: product, Image 2: style").
-- Describe how to combine them ("apply Image 2's style to Image 1").
+## Input images and references
+- Do not assume that every provided image is an edit target.
+- Label each image by index and role ("Image 1: edit target", "Image 2: style reference").
+- If the user provides images for style, composition, or mood guidance and does not ask to modify them, treat the request as generation with references.
+- If the user asks to preserve an existing image while changing specific parts, treat the request as an edit.
 - For compositing, specify what moves where and what must remain unchanged.
 
 ## Iterate deliberately
 - Start with a clean base prompt, then make small single-change edits.
 - Re-specify critical constraints when you iterate.
+- Prefer one targeted follow-up at a time over rewriting the whole prompt.
 
 ## Quality vs latency
 - For latency-sensitive runs, start at `quality=low` and only raise it if needed.

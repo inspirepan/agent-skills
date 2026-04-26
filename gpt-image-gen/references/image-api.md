@@ -14,13 +14,19 @@
 - `model`: image model
 - `n`: number of images (1-10)
 - `size`:
-  - `gpt-image-2`: any `WxH` resolution that satisfies the API constraints, or `auto`. Outputs larger than `2560x1440` (3,686,400 total pixels) are considered experimental.
+  - `gpt-image-2`: explicit `WxH` resolution with both width and height divisible by 16, or `auto`. Outputs larger than `2560x1440` (3,686,400 total pixels) are considered experimental.
   - `gpt-image-1.5` / `gpt-image-1` / `gpt-image-1-mini`: `1024x1024`, `1536x1024`, `1024x1536`, or `auto`.
 - `quality`: `low`, `medium`, `high`, or `auto`
 - `background`: `transparent`, `opaque`, or `auto` (transparent requires `png`/`webp`; not supported on `gpt-image-2`)
 - `output_format`: `png` (default), `jpeg`, `webp`
 - `output_compression`: 0-100 (jpeg/webp only)
 - `moderation`: `auto` (default) or `low`
+
+Parameter notes:
+- Use explicit `size` values that match the destination asset instead of generating square images by habit.
+- For `gpt-image-2`, round requested dimensions to nearby 16-multiples before calling the API (for example `2256x960`, not `2350x1000`).
+- The prompt's visual `Scene/backdrop` is not the same as `background`; `background` controls transparency behavior only.
+- Keep execution controls (`quality`, `size`, `background`, `output_format`, `input_fidelity`) in CLI flags or JSONL fields rather than burying them as creative prose.
 
 ## Edit-specific parameters
 - `image`: one or more input images (first image is primary)
@@ -31,6 +37,7 @@
 
 ## Output
 - `data[]` list with `b64_json` per image
+- The bundled CLI decodes `b64_json` and writes output files for you.
 
 ## Limits & notes
 - Input images and masks must be under 50MB.
