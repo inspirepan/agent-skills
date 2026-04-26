@@ -16,11 +16,11 @@ This file contains the command catalog for the bundled video generation CLI. Kee
 Real API calls require **network access** + `OPENAI_API_KEY`. `--dry-run` does not.
 
 ## Quick start (works from any repo)
-Set a stable path to the skill CLI (default `CODEX_HOME` is `~/.codex`):
+Set a stable path to the skill CLI (default `KLAUDE_HOME` is `~/.klaude`):
 
 ```
-export CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-export SORA_CLI="$CODEX_HOME/skills/sora/scripts/sora.py"
+export KLAUDE_HOME="${KLAUDE_HOME:-$HOME/.klaude}"
+export SORA_CLI="$KLAUDE_HOME/skills/sora/scripts/sora.py"
 ```
 
 If you're in this repo, you can set the path directly:
