@@ -65,7 +65,7 @@ provider_list:
 
 Use `klaude list` to see all configured models and their availability.
 
-When a selector is unqualified, klaude expands it across matching providers in `provider_list` order. For example, `gpt-5.4` can resolve through `openai`, `github-copilot`, and `openrouter` before falling through to the next model in the list.
+When a selector is unqualified, klaude expands it across matching providers in `provider_list` order. For example, `gpt-5.4` can resolve through `openai` and `openrouter` before falling through to the next model in the list.
 
 The `/model` slash command still updates the saved default `main_model`, but it preserves fallback order: if the selected model is already in the list it is moved to the front, otherwise it is inserted at the front.
 
@@ -89,7 +89,6 @@ Multi-fallback syntax: `${GOOGLE_API_KEY|GEMINI_API_KEY}` -- tries each variable
 | `google_vertex` | Google Vertex AI |
 | `bedrock` | AWS Bedrock |
 | `codex_oauth` | Codex OAuth (no API key, use `klaude auth login codex`) |
-| `github_copilot_oauth` | GitHub Copilot OAuth (no API key, use `klaude auth login copilot`) |
 
 ## Merging Rules
 

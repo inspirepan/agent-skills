@@ -64,11 +64,6 @@ These providers work out-of-the-box when their credentials are configured.
 - **Protocol**: `codex_oauth`
 - **Models**: `gpt-5.3-codex`, `gpt-5.3-codex:xhigh`, `gpt-5.4-nano`, `gpt-5.4-mini`, `gpt-5.4`, `gpt-5.4:xhigh`
 
-### github-copilot
-- **Auth**: OAuth (`klaude auth login copilot`)
-- **Protocol**: `github_copilot_oauth`
-- **Models**: `gpt-5.3-codex`, `gpt-5.3-codex:xhigh`, `gpt-5.4-nano`, `gpt-5.4-mini`, `gpt-5.4`, `gpt-5.4:xhigh`, `sonnet`, `haiku`, `opus`
-
 ### ark-coding-plan
 - **Env var**: `ARK_API_KEY`
 - **Protocol**: `anthropic` (via base_url)
@@ -100,7 +95,6 @@ export OPENAI_API_KEY=sk-...
 klaude auth login anthropic
 klaude auth login openai
 klaude auth login codex
-klaude auth login copilot
 ```
 
 ### Config file (${ENV_VAR} syntax)

@@ -59,7 +59,6 @@ Full reference: [references/config-file.md](references/config-file.md)
 | google-vertex | `GOOGLE_APPLICATION_CREDENTIALS` + project + location | env var |
 | bedrock | AWS credentials + region | env var |
 | codex | `klaude auth login codex` | OAuth |
-| github-copilot | `klaude auth login copilot` | OAuth |
 
 Full provider details and models: [references/builtin-providers.md](references/builtin-providers.md)
 
