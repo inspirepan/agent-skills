@@ -55,8 +55,14 @@ cd "$SKILL_DIR"
 npm install --no-package-lock
 
 # Verify install
-echo "Verifying beautiful-mermaid..."
-npx tsx -e 'import("beautiful-mermaid").then(m => console.log("beautiful-mermaid OK, themes:", Object.keys(m.THEMES).length))'
+echo "Verifying mermaid..."
+npx tsx -e 'import("mermaid").then(m => console.log("mermaid OK, render:", typeof m.default.render))'
+echo "Verifying puppeteer-core..."
+npx tsx -e 'import("puppeteer-core").then(() => console.log("puppeteer-core OK"))'
+echo "Verifying jsdom..."
+npx tsx -e 'import("jsdom").then(() => console.log("jsdom OK"))'
+echo "Verifying tsx..."
+npx tsx --version >/dev/null
 
 # Summary
 echo ""

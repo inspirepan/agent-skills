@@ -21,7 +21,7 @@ node --version
 
 # Check dependencies installed
 SKILL_DIR="{SKILL_BASE_DIR}"
-test -d "$SKILL_DIR/node_modules/beautiful-mermaid" && echo "deps-ok" || echo "deps-missing"
+cd "$SKILL_DIR" && npx tsx -e 'Promise.all([import("mermaid"), import("jsdom"), import("puppeteer-core")]).then(() => console.log("deps-ok")).catch(() => { console.log("deps-missing"); process.exit(1); })'
 ```
 
 If deps-missing, run setup script first:
@@ -39,14 +39,14 @@ Use AskUserQuestion with ALL questions in ONE call:
 header: "Theme"
 question: "Default Mermaid theme?"
 options:
-  - label: "zinc-light (Recommended)"
-    description: "Clean light theme with gray tones"
-  - label: "github-light"
-    description: "GitHub-style light theme"
-  - label: "nord"
-    description: "Nord color palette, cool blue-gray"
-  - label: "tokyo-night"
-    description: "Dark theme with vibrant colors"
+  - label: "default (Recommended)"
+    description: "Mermaid default light theme"
+  - label: "neutral"
+    description: "Muted grayscale palette"
+  - label: "dark"
+    description: "Mermaid dark theme"
+  - label: "forest"
+    description: "Green-tinted palette"
 ```
 
 ### Question 2: Scale
@@ -70,9 +70,9 @@ header: "Output"
 question: "Preferred output mode?"
 options:
   - label: "Script render (Recommended)"
-    description: "PNG primary via beautiful-mermaid + Chrome, best for embedding in docs"
+    description: "PNG primary via Mermaid + Chrome, best for embedding in docs"
   - label: "Standalone HTML"
-    description: "HTML primary via beautiful-mermaid, no Chrome needed, open in browser"
+    description: "HTML primary via Mermaid, no Chrome needed, open in browser"
 ```
 
 ### Question 4: Save Location
@@ -99,7 +99,9 @@ options:
 ```yaml
 ---
 version: 1
-theme: zinc-light
+theme: default
+curve: basis
+background: "#ffffff"
 scale: 2
 width: 2400
 html_padding: 40

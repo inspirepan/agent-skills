@@ -5,7 +5,7 @@ description: "Use when the user asks you to analyze a repository, draw an archit
 
 # Render Mermaid
 
-Render Mermaid diagrams to PNG/SVG/HTML using beautiful-mermaid themes.
+Render Mermaid diagrams to PNG/SVG/HTML using the official Mermaid renderer.
 
 ## Workflow
 
@@ -29,7 +29,7 @@ test -f .render-mermaid/EXTEND.md && echo "project"
 test -f "$HOME/.render-mermaid/EXTEND.md" && echo "user"
 
 # Check dependencies
-test -d "{SKILL_BASE_DIR}/node_modules/beautiful-mermaid" && echo "deps-ok" || echo "deps-missing"
+cd "{SKILL_BASE_DIR}" && npx tsx -e 'Promise.all([import("mermaid"), import("jsdom"), import("puppeteer-core")]).then(() => console.log("deps-ok")).catch(() => { console.log("deps-missing"); process.exit(1); })'
 ```
 
 | Result | Action |
@@ -60,6 +60,7 @@ output_mode = ?
 cd "{SKILL_BASE_DIR}" && npx tsx scripts/render_mermaid.js \
   --output "<OUTPUT_PATH>.png" \
   --theme "<THEME>" \
+  --curve "<CURVE>" \
   --config "<EXTEND_MD_PATH>" \
   --svg-output "<OUTPUT_PATH>.svg" \
   --html-output "<OUTPUT_PATH>.html" <<'MERMAID'
@@ -71,12 +72,13 @@ When only PNG is needed, omit `--svg-output` and `--html-output`.
 
 **Option B: Script render -- HTML primary** (no Chrome needed)
 
-Same script, pass `--html-output` only (no `--output`). Uses beautiful-mermaid themes, skips PNG/Chrome entirely.
+Same script, pass `--html-output` only (no `--output`). Uses the official Mermaid renderer and skips PNG/Chrome entirely.
 
 ```bash
 cd "{SKILL_BASE_DIR}" && npx tsx scripts/render_mermaid.js \
   --html-output "<OUTPUT_PATH>.html" \
   --theme "<THEME>" \
+  --curve "<CURVE>" \
   --config "<EXTEND_MD_PATH>" <<'MERMAID'
 <MERMAID_TEXT>
 MERMAID
@@ -86,7 +88,7 @@ Optionally add `--svg-output` for SVG alongside HTML.
 
 **Fallback: CDN template** (when deps not installed)
 
-Read the template at [references/templates/standalone.html](references/templates/standalone.html), substitute placeholders, and write the output file directly. No script execution needed. Uses basic Mermaid themes (not beautiful-mermaid).
+Read the template at [references/templates/standalone.html](references/templates/standalone.html), substitute placeholders, and write the output file directly. No script execution needed. Uses Mermaid CDN themes.
 
 | Placeholder | EXTEND.md field | Default | Example |
 |-------------|-----------------|---------|---------|
@@ -94,6 +96,7 @@ Read the template at [references/templates/standalone.html](references/templates
 | `{{BACKGROUND}}` | `standalone_background` | `#ffffff` | `#1a1a2e` |
 | `{{MERMAID_CODE}}` | - | - | `flowchart TD ...` |
 | `{{MERMAID_THEME}}` | `standalone_theme` | `default` | `dark`, `neutral`, `forest` |
+| `{{MERMAID_CURVE}}` | `curve` | `basis` | `linear`, `basis`, `step` |
 
 **Common notes for Option A and B:**
 
@@ -123,7 +126,9 @@ Override rules (take precedence over `output_mode`):
 | `--output <path.png>` | PNG output (requires Chrome) | - |
 | `--svg-output <path.svg>` | SVG output | - |
 | `--html-output <path.html>` | HTML wrapper output | - |
-| `--theme <name>` | Theme name | zinc-light |
+| `--theme <name>` | Mermaid official theme | default |
+| `--curve <name>` | Flowchart curve | basis |
+| `--background <color>` | HTML/PNG background | theme default |
 | `--scale <number>` | PNG scale factor | 2 |
 | `--width <number>` | Viewport width | 2400 |
 | `--html-padding <px>` | HTML padding | 40 |
@@ -133,9 +138,11 @@ Override rules (take precedence over `output_mode`):
 
 ## Themes
 
-Built-in themes from beautiful-mermaid: `zinc-light`, `zinc-dark`, `tokyo-night`, `tokyo-night-storm`, `tokyo-night-light`, `catppuccin-mocha`, `catppuccin-latte`, `nord`, `nord-light`, `dracula`, `github-light`, `github-dark`, `solarized-light`, `solarized-dark`, `one-dark`.
+Official Mermaid themes: `default`, `neutral`, `dark`, `forest`, `base`.
 
-Aliases: `default` -> `zinc-light`, `solarized` -> `solarized-light`.
+## Flowchart Curves
+
+Supported Mermaid curve values: `linear`, `basis`, `bumpX`, `bumpY`, `cardinal`, `catmullRom`, `monotoneX`, `monotoneY`, `natural`, `step`, `stepAfter`, `stepBefore`.
 
 Full list: [references/config/preferences-schema.md](references/config/preferences-schema.md)
 
