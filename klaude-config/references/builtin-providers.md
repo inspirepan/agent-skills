@@ -75,7 +75,8 @@ These providers work out-of-the-box when their credentials are configured.
 # Sub-agent defaults
 sub_agent_models:
   finder: [gpt-5.4-mini, gemini-flash:minimal, haiku]
-  code-reviewer: [gpt-5.4, opus]
+  code-reviewer: [gpt-5.5:xhigh, gpt-5.5, gpt-5.4:xhigh, opus]
+  code-maintenance-reviewer: [gpt-5.5, gpt-5.4, opus]
 
 # Compaction and fast tasks
 compact_model: [gemini-flash, sonnet:no-thinking, gpt-5.4-mini]

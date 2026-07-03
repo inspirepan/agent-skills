@@ -35,7 +35,7 @@ sub_agent_models:
   general-purpose: sonnet
   code-reviewer: opus
   memory: sonnet
-  code-simplifier: sonnet
+  code-maintenance-reviewer: sonnet
 
 # UI theme
 theme: dark

@@ -19,7 +19,8 @@ fast_model: [gpt-5.4-nano, haiku]    # fallback list, first available wins
 compact_model: [gemini-flash, sonnet:no-thinking]
 sub_agent_models:
   finder: gpt-5.4-mini
-  review: opus
+  code-reviewer: opus
+  code-maintenance-reviewer: sonnet
 theme: dark
 provider_list:
 - provider_name: my-provider
