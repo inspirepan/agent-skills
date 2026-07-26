@@ -18,16 +18,26 @@ Session logs live at: `~/.klaude/projects/<project_key>/sessions/`
 
 ## JSONL Structure
 
-Each line in `events.jsonl` has `{"type": "<TypeName>", "data": {...}}`:
+Each line in `events.jsonl` has `{"type": "<TypeName>", "data": {...}}`. Common types are:
 
 | type | description |
 |------|-------------|
 | `UserMessage` | User input. `data.parts[].text` for content |
 | `AssistantMessage` | Assistant response. `data.parts[]` contains `text`, `thinking_text`, `tool_call` parts |
 | `ToolResultMessage` | Tool execution result. `data.tool_name`, `data.output_text` |
-| `DeveloperMessage` | System/checkpoint messages |
+| `SystemMessage` | System-level model input |
+| `DeveloperMessage` | Model-facing attachments, reminders, and checkpoints |
 | `TaskMetadataItem` | Cost and usage stats. `data.main_agent.usage.total_cost` |
 | `StreamErrorItem` | Error during streaming |
+| `InterruptEntry` | Interrupted task marker |
+| `CompactionEntry` | Context compaction summary and boundary |
+| `RewindEntry` | Session rewind marker |
+| `CacheHitRateEntry` | Prompt cache hit-rate snapshot |
+| `SpawnSubAgentEntry` | Sub-agent session spawned from this parent session |
+| `AwaySummaryEntry` | Persisted while-you-were-away summary |
+| `PromptSuggestionEntry` | Persisted next-prompt suggestion |
+
+Other sidecar event types may be added over time. Inspect available types before writing queries that must account for every JSONL row.
 
 ## Common Queries
 
@@ -38,7 +48,7 @@ PROJECT_DIR=~/.klaude/projects/<project_key>/sessions
 for d in "$PROJECT_DIR"/*/; do
   meta="$d/meta.json"
   [ -f "$meta" ] || continue
-  jq -r '[.updated_at // 0 | todate, .id, (.messages_count // 0 | tostring), (.user_messages[0] // "" | .[:60])] | join(" | ")' "$meta"
+  jq -r '[((.updated_at // 0) | todate), .id, ((.messages_count // 0) | tostring), ((.user_messages[0] // "") | .[:60])] | join(" | ")' "$meta"
 done | sort -r
 ```
 
@@ -66,13 +76,13 @@ jq -r 'select(.type == "AssistantMessage") | .data.parts[]? | select(.type == "t
 ### Get total cost for a session
 
 ```bash
-jq -s '[.[] | select(.type == "TaskMetadataItem") | .data.main_agent.usage.total_cost // 0] | add' <session_dir>/events.jsonl
+jq -s '[.[] | select(.type == "TaskMetadataItem") | .data.main_agent.usage.total_cost // 0] | add // 0' <session_dir>/events.jsonl
 ```
 
 ### Cost including sub-agents
 
 ```bash
-jq -s '[.[] | select(.type == "TaskMetadataItem") | ((.data.main_agent.usage.total_cost // 0) + ([.data.sub_agent_task_metadata[]?.usage.total_cost // 0] | add // 0))] | add' <session_dir>/events.jsonl
+jq -s '[.[] | select(.type == "TaskMetadataItem") | ((.data.main_agent.usage.total_cost // 0) + ([.data.sub_agent_task_metadata[]?.usage.total_cost // 0] | add // 0))] | add // 0' <session_dir>/events.jsonl
 ```
 
 ### Daily cost summary
@@ -90,7 +100,8 @@ done | awk '{a[$1]+=$2} END {for(d in a) printf "%s $%.4f\n", d, a[d]}' | sort -
 
 ```bash
 jq -s '{
-  total: length,
+  events: length,
+  total: [.[] | select(.type == "UserMessage" or .type == "AssistantMessage" or .type == "ToolResultMessage")] | length,
   user: [.[] | select(.type == "UserMessage")] | length,
   assistant: [.[] | select(.type == "AssistantMessage")] | length,
   tool_results: [.[] | select(.type == "ToolResultMessage")] | length
@@ -123,8 +134,10 @@ jq -r 'select(.type == "UserMessage" or .type == "AssistantMessage") | .data.par
 
 ## Tips
 
-- Sessions are append-only JSONL (one JSON object per line)
+- `events.jsonl` is append-only (one JSON object per line); `meta.json` is an atomically rewritten snapshot
 - Large sessions can be several MB -- use `head`/`tail` for sampling
 - `meta.json` caches `user_messages` array for quick listing without parsing events.jsonl
+- `meta.json.messages_count` counts `UserMessage`, `AssistantMessage`, and `ToolResultMessage`; it is not the total number of JSONL rows
 - Sub-agent sessions also exist as separate session directories (they have `sub_agent_state` in meta.json)
+- Include `TaskMetadataItem` entries with `is_partial: true` in cost totals: they represent usage from interrupted tasks
 - Use `jq -s` (slurp) when aggregating across lines; use streaming mode for extraction
