@@ -8,7 +8,7 @@ Run all examples as `uv run scripts/image_gen.py ...`. Live commands require
 ```bash
 uv run scripts/image_gen.py models [--all] [--json]
 uv run scripts/image_gen.py generate --prompt TEXT [common options]
-uv run scripts/image_gen.py edit --input ROLE=HTTPS_URL --prompt TEXT [common options]
+uv run scripts/image_gen.py edit --input ROLE=LOCAL_PATH --prompt TEXT [common options]
 uv run scripts/image_gen.py generate-batch --batch-input jobs.jsonl --out-dir output [common options]
 ```
 
@@ -44,16 +44,22 @@ Runtime and output controls are `--out`, `--out-dir`, `--force`, `--dry-run`,
 `--downscale-max-dim`, and `--downscale-suffix`. Batch additionally supports
 `--concurrency` and `--fail-fast`.
 
-Use repeated `--input` as JSON or `ROLE=HTTPS_URL`. URL shorthand infers only
-PNG/JPEG/WebP MIME types. JSON is required for other types:
+Use repeated `--input` as JSON, `ROLE=LOCAL_PATH`, or `ROLE=HTTPS_URL`. Local
+PNG/JPEG/WebP paths are the preferred form for edits and references. Shorthand
+infers MIME type from `.png`, `.jpg`, `.jpeg`, or `.webp`. JSON can specify a
+local `path` and `mimeType` explicitly:
 
 ```bash
+--input 'source=./photo.jpg'
+--input '{"role":"reference","path":"./look.webp","mimeType":"image/webp"}'
 --input 'reference=https://cdn.example.com/look.webp'
 --input '{"role":"mask","url":"https://cdn.example.com/mask.png","mimeType":"image/png"}'
 ```
 
-`edit` requires at least one input. Inputs remain in the same `/image-jobs`
-generation request as ordinary generation; they are not local uploads.
+Local files must exist, be no larger than 20 MiB, and be PNG, JPEG, or WebP.
+Explicit URL schemes must use HTTPS. Before a live job, the CLI uploads local
+inputs to `/image-inputs` and replaces each path with the returned HTTPS URL.
+`edit` requires at least one local or HTTPS input.
 
 ## Model examples
 
@@ -88,12 +94,18 @@ job prefix such as `001-hero.png`, preventing derived multi-output names from
 colliding across concurrent jobs.
 
 ```bash
-uv run scripts/image_gen.py edit --input source=https://cdn.example.com/item.jpg \
+uv run scripts/image_gen.py edit --input source=./item.jpg \
   --prompt "Change only the tabletop to walnut; preserve the item" --dry-run
 
 cat > jobs.jsonl <<'EOF'
 "A precise botanical illustration of a fern"
 {"prompt":"Premium tea package", "model":"ideogram-v4", "out":"tea", "params":{"rendering_speed":"turbo"}}
+{"prompt":"Use this composition", "inputs":[{"role":"reference","path":"./layout.png"}]}
 EOF
 uv run scripts/image_gen.py generate-batch --batch-input jobs.jsonl --out-dir output --concurrency 3
 ```
+
+Dry-run checks that each local path is a file but does not read or upload its
+bytes. Its JSON output includes an `uploads` plan. The nested job request uses
+safe `https://image-input.invalid/...` placeholders instead of local paths.
+Batch live uploads run inside each concurrent worker and follow `--fail-fast`.

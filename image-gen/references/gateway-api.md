@@ -19,7 +19,16 @@ The stable integration is asynchronous and model-agnostic.
 
 Each input is `{ "role", "url", "mimeType", "ordinal?" }`. Valid roles are
 `reference`, `source`, `mask`, `style`, and `character`. URLs must be HTTPS and
-downloadable by the gateway; local files are not upload inputs. A `mask` is PNG.
+downloadable by the gateway. A `mask` is PNG.
+
+For a local PNG, JPEG, or WebP input up to 20 MiB, first send its raw bytes to
+`POST /image-inputs`. Use `Authorization: Bearer $YOUTU_API_KEY` and set
+`Content-Type` to the image MIME type. A successful upload returns HTTP 201 and
+`{ "url", "mimeType", "expiresAt" }`. The CLI verifies that `url` is HTTPS and
+that a returned `mimeType` matches the request; a missing `mimeType` means the
+request MIME type. It then puts the returned URL in the normal `/image-jobs`
+input object. Uploads use the same request timeout and retry count as other
+gateway requests.
 
 ## Models and parameters
 

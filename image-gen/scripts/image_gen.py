@@ -12,7 +12,7 @@ import sys
 import time
 import uuid
 from http.client import RemoteDisconnected
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlparse
@@ -24,10 +24,12 @@ DEFAULT_TIMEOUT = 600
 DEFAULT_REQUEST_TIMEOUT = 60.0
 DEFAULT_POLL_INTERVAL = 2.0
 MAX_BATCH_JOBS = 500
+MAX_LOCAL_INPUT_BYTES = 20 * 1024 * 1024
 USER_AGENT = "image-gen/1.0"
 TERMINAL = {"succeeded", "failed", "canceled"}
 PENDING = {"queued", "submitting", "running", "uploading", "settling"}
 MIME_EXTENSIONS = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp"}
+INPUT_MIME_TYPES = frozenset(MIME_EXTENSIONS)
 PROMPT_FIELDS = ("use_case", "asset_type", "scene", "subject", "style", "composition", "lighting", "palette", "materials", "text", "constraints", "negative")
 GEMINI_IMAGE_ALIASES = {
     "nano-banana-2-lite": "gemini-3.1-flash-lite-image",
@@ -97,20 +99,27 @@ def request_bytes(
     *,
     method: str = "GET",
     body: dict[str, Any] | None = None,
+    raw_body: bytes | None = None,
+    content_type: str | None = None,
+    expected_status: int | None = None,
     key: str | None = None,
     retries: int = 3,
     redirects: int = 0,
     timeout: float = DEFAULT_REQUEST_TIMEOUT,
 ) -> bytes:
+    if body is not None and raw_body is not None:
+        raise ValueError("body and raw_body are mutually exclusive")
     for attempt in range(1, retries + 1):
-        payload = None if body is None else json.dumps(body).encode()
+        payload = raw_body if raw_body is not None else None if body is None else json.dumps(body).encode()
         headers = {"Accept": "application/json", "User-Agent": USER_AGENT}
         if payload is not None:
-            headers["Content-Type"] = "application/json"
+            headers["Content-Type"] = content_type or "application/json"
         if key:
             headers["Authorization"] = f"Bearer {key}"
         try:
             with build_opener(NoRedirect).open(Request(url, data=payload, headers=headers, method=method), timeout=timeout) as response:
+                if expected_status is not None and response.status != expected_status:
+                    raise RuntimeError(f"Expected HTTP {expected_status} from {url}, got {response.status}.")
                 return response.read()
         except HTTPError as exc:
             if exc.code in {301, 302, 303, 307, 308}:
@@ -127,6 +136,9 @@ def request_bytes(
                     target,
                     method=method,
                     body=body,
+                    raw_body=raw_body,
+                    content_type=content_type,
+                    expected_status=expected_status,
                     key=key if same_origin(target, base_url()) else None,
                     retries=retries,
                     redirects=redirects + 1,
@@ -230,15 +242,57 @@ def mime_for_url(url: str) -> str | None:
     return {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}.get(suffix)
 
 
+def mime_for_path(path: Path) -> str | None:
+    return {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}.get(path.suffix.lower())
+
+
+def validate_https_url(url: str) -> bool:
+    parsed = urlparse(url)
+    return parsed.scheme == "https" and bool(parsed.hostname) and not parsed.username and not parsed.password
+
+
+def classify_input_location(value: str) -> str:
+    if PureWindowsPath(value).is_absolute():
+        return "path"
+    scheme = urlparse(value).scheme
+    if scheme == "https":
+        return "url"
+    if scheme:
+        return "unsupported_uri"
+    return "path"
+
+
 def validate_input(item: Any, ordinal: int) -> dict[str, Any]:
     if not isinstance(item, dict):
         die("Each --input JSON value must be an object.")
     result = dict(item)
-    if not all(isinstance(result.get(k), str) and result[k] for k in ("role", "url", "mimeType")):
-        die("Each input requires string role, url, and mimeType.")
-    parsed = urlparse(result["url"])
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
-        die("Input URLs must be gateway-downloadable HTTPS URLs; local files and http/file URLs are unsupported.")
+    if not isinstance(result.get("role"), str) or not result["role"]:
+        die("Each input requires a string role.")
+    has_url = isinstance(result.get("url"), str) and bool(result["url"])
+    has_path = isinstance(result.get("path"), str) and bool(result["path"])
+    if has_url == has_path:
+        die("Each input requires exactly one string url or path.")
+    if has_url:
+        if not isinstance(result.get("mimeType"), str) or not result["mimeType"]:
+            die("Each URL input requires string role, url, and mimeType.")
+        if not validate_https_url(result["url"]):
+            die("Input URLs must be gateway-downloadable HTTPS URLs; non-HTTPS URL schemes are unsupported.")
+    else:
+        path = Path(result["path"])
+        if not path.is_file():
+            die(f"Input file not found or not a file: {path}")
+        inferred_mime = mime_for_path(path)
+        if not inferred_mime:
+            die(f"Cannot infer input MIME type from {path}; use a .png, .jpg, .jpeg, or .webp file.")
+        supplied_mime = result.get("mimeType")
+        if supplied_mime is not None and (not isinstance(supplied_mime, str) or not supplied_mime):
+            die("Local input mimeType must be a non-empty string.")
+        if supplied_mime is None:
+            result["mimeType"] = inferred_mime
+        elif supplied_mime not in INPUT_MIME_TYPES:
+            die("Local inputs support only image/png, image/jpeg, and image/webp.")
+        elif inferred_mime and supplied_mime != inferred_mime:
+            die(f"Input mimeType {supplied_mime} does not match file extension for {path} ({inferred_mime}).")
     if result["role"] == "mask" and result["mimeType"] != "image/png":
         die("A mask input must use mimeType image/png.")
     result.setdefault("ordinal", ordinal)
@@ -254,12 +308,15 @@ def parse_inputs(values: list[Any] | None) -> list[dict[str, Any]]:
             decoded = json_value(raw, "--input")
         else:
             if "=" not in raw:
-                die("--input must be ROLE=HTTPS_URL or a JSON object (or @JSON_FILE).")
-            role, url = raw.split("=", 1)
-            mime = mime_for_url(url)
+                die("--input must be ROLE=HTTPS_URL, ROLE=LOCAL_PATH, or a JSON object (or @JSON_FILE).")
+            role, value = raw.split("=", 1)
+            location = classify_input_location(value)
+            if location == "unsupported_uri":
+                die("Input URLs must use HTTPS; non-HTTPS URL schemes are not local files.")
+            mime = mime_for_url(value)
             if not mime:
-                die("Cannot infer input MIME type from URL; use JSON with mimeType.")
-            decoded = {"role": role, "url": url, "mimeType": mime}
+                die("Cannot infer input MIME type; use JSON with mimeType image/png, image/jpeg, or image/webp.")
+            decoded = {"role": role, location: value, "mimeType": mime}
         result.append(validate_input(decoded, ordinal))
     allowed_roles = {"reference", "source", "mask", "style", "character"}
     if any(item["role"] not in allowed_roles for item in result):
@@ -336,7 +393,68 @@ def build_job(args: argparse.Namespace, *, prompt: str, overrides: dict[str, Any
 
 
 def print_preview(payload: dict[str, Any], outputs: Any) -> None:
-    print(json.dumps({"endpoint": "/image-jobs", "request": payload, "outputs": outputs}, indent=2, sort_keys=True))
+    request_payload, uploads = prepare_inputs(payload)
+    print(json.dumps({"endpoint": "/image-jobs", "uploads": uploads, "request": request_payload, "outputs": outputs}, indent=2, sort_keys=True))
+
+
+def prepare_inputs(payload: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    prepared = dict(payload)
+    uploads = []
+    prepared_inputs = []
+    for item in payload.get("inputs", []):
+        if "path" not in item:
+            prepared_inputs.append(dict(item))
+            continue
+        suffix = MIME_EXTENSIONS[item["mimeType"]]
+        placeholder = f"https://image-input.invalid/{item['ordinal']}{suffix}"
+        uploads.append({"endpoint": "/image-inputs", "path": item["path"], "mimeType": item["mimeType"], "role": item["role"], "ordinal": item["ordinal"], "placeholderUrl": placeholder})
+        prepared_inputs.append({key: value for key, value in item.items() if key != "path"} | {"url": placeholder})
+    if prepared_inputs:
+        prepared["inputs"] = prepared_inputs
+    return prepared, uploads
+
+
+def read_local_input(path: Path) -> bytes:
+    size = path.stat().st_size
+    if size > MAX_LOCAL_INPUT_BYTES:
+        die(f"Local input exceeds the 20 MiB limit: {path} ({size} bytes).")
+    with path.open("rb") as file:
+        content = file.read(MAX_LOCAL_INPUT_BYTES + 1)
+    if len(content) > MAX_LOCAL_INPUT_BYTES:
+        die(f"Local input exceeds the 20 MiB limit: {path}.")
+    return content
+
+
+def upload_input(item: dict[str, Any], args: argparse.Namespace, key: str) -> dict[str, Any]:
+    mime = item["mimeType"]
+    content = read_local_input(Path(item["path"]))
+    raw = request_bytes(
+        base_url() + "/image-inputs",
+        method="POST",
+        raw_body=content,
+        content_type=mime,
+        expected_status=201,
+        key=key,
+        retries=args.max_attempts,
+        timeout=args.request_timeout,
+    )
+    try:
+        response = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Image input upload returned invalid JSON: {exc}") from exc
+    if not isinstance(response, dict) or not isinstance(response.get("url"), str) or not validate_https_url(response["url"]):
+        raise RuntimeError("Image input upload response did not include a valid HTTPS url.")
+    response_mime = response.get("mimeType", mime)
+    if response_mime != mime:
+        raise RuntimeError(f"Image input upload returned mimeType {response_mime!r}; expected {mime!r}.")
+    return {key: value for key, value in item.items() if key != "path"} | {"url": response["url"]}
+
+
+def upload_inputs(payload: dict[str, Any], args: argparse.Namespace, key: str) -> dict[str, Any]:
+    prepared = dict(payload)
+    if "inputs" in payload:
+        prepared["inputs"] = [upload_input(item, args, key) if "path" in item else dict(item) for item in payload["inputs"]]
+    return prepared
 
 
 def submit_and_wait(payload: dict[str, Any], args: argparse.Namespace, key: str) -> dict[str, Any]:
@@ -467,6 +585,7 @@ def run_one(args: argparse.Namespace, overrides: dict[str, Any] | None = None) -
     preview_out = overrides.get("out") or args.out
     if args.dry_run: print_preview(payload, {"out": preview_out, "out_dir": args.out_dir}); return
     key = require_key(False); assert key
+    payload = upload_inputs(payload, args, key)
     job = submit_and_wait(payload, args, key)
     download_outputs(job, args, key, out=preview_out, out_dir=args.out_dir)
 
@@ -566,6 +685,7 @@ async def run_batch(args: argparse.Namespace) -> None:
 
 def run_one_payload(args: argparse.Namespace, payload: dict[str, Any], job: dict[str, Any], index: int) -> None:
     key = require_key(False); assert key
+    payload = upload_inputs(payload, args, key)
     result = submit_and_wait(payload, args, key)
     # Output count is unknown until completion; names are allocated only now.
     out, batch_dir = batch_output_target(args, job, index)
@@ -593,7 +713,7 @@ def main() -> int:
         command.set_defaults(func=run_one)
     batch = commands.add_parser("generate-batch", help="Generate JSONL jobs concurrently"); add_common(batch); batch.add_argument("--batch-input", "--input-file", dest="batch_input", required=True); batch.add_argument("--concurrency", type=int, default=3); batch.add_argument("--fail-fast", action="store_true"); batch.set_defaults(func=run_batch)
     args = parser.parse_args()
-    if args.command == "edit" and not args.input: die("edit requires at least one --input HTTPS image.")
+    if args.command == "edit" and not args.input: die("edit requires at least one --input HTTPS or local image.")
     if getattr(args, "timeout", 1) < 1 or getattr(args, "poll_interval", 1) <= 0 or getattr(args, "request_timeout", 1) <= 0 or getattr(args, "max_attempts", 1) < 1: die("timeout and max-attempts must be >= 1; poll-interval and request-timeout must be > 0.")
     if getattr(args, "downscale_max_dim", None) is not None and args.downscale_max_dim < 1: die("--downscale-max-dim must be >= 1.")
     if getattr(args, "concurrency", 1) < 1 or getattr(args, "concurrency", 1) > 25: die("--concurrency must be between 1 and 25.")

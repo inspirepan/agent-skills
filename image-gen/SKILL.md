@@ -14,7 +14,7 @@ Live requests require `YOUTU_API_KEY`; `YOUTU_BASE_URL` optionally replaces
 ## When to use
 
 - Create raster artwork, product images, covers, illustrations, or UI imagery.
-- Edit an existing image, make a masked change, or combine HTTPS-hosted images.
+- Edit an existing image, make a masked change, or combine local or HTTPS-hosted images.
 - Make variants or a JSONL batch using a gateway image model.
 
 ## When not to use
@@ -37,10 +37,10 @@ Live requests require `YOUTU_API_KEY`; `YOUTU_BASE_URL` optionally replaces
 4. Analyze the request, then form one complete final prompt. Keep provider/model
    controls in CLI flags or `--param`, not in prose. If the prompt is already a
    complete spec, pass `--no-augment` to avoid double processing.
-5. For input images, obtain gateway-downloadable HTTPS URLs first. A local path
-   cannot be sent by this skill and must not be represented as uploaded. Label
-   every URL with its role (`source`, `reference`, `mask`, `style`, `character`).
-   Masks must be PNG.
+5. Prefer local paths for source and reference images. The CLI uploads each local
+   PNG, JPEG, or WebP up to 20 MiB through `/image-inputs` before creating the
+   job. HTTPS URLs remain supported. Label every input with its role (`source`,
+   `reference`, `mask`, `style`, `character`). Masks must be PNG.
 6. Run `generate` or `edit`, save outputs deliberately, then read/inspect the
    generated images. The gateway can return more outputs than requested.
 7. Iterate one factor at a time: change the prompt, a provider parameter, an
@@ -56,8 +56,9 @@ template would help form the final prompt.
 ```bash
 uv run scripts/image_gen.py models
 uv run scripts/image_gen.py generate --prompt "Editorial photo of a red umbrella" --out output/umbrella
-uv run scripts/image_gen.py edit --input source=https://cdn.example.com/photo.jpg --prompt "Replace only the sky with a clear dawn sky" --out output/edit
+uv run scripts/image_gen.py edit --input source=./photo.jpg --prompt "Replace only the sky with a clear dawn sky" --out output/edit
 ```
 
-Use `--dry-run` to print the complete gateway payload without a key. Never put
-API keys in a prompt, command output, or source file.
+Use `--dry-run` to validate local files and print the upload plan plus job
+payload without reading image bytes or requiring a key. Never put API keys in a
+prompt, command output, or source file.
