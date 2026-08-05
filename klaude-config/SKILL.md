@@ -40,7 +40,7 @@ Key points:
 - `/model` updates `main_model` while preserving fallback order: the selected model is moved or inserted to the front of the list.
 - `${ENV_VAR}` resolves from env, then `~/.klaude/klaude-auth.json`. Multi-fallback: `${A|B}`.
 - User config merges with builtin config (user wins per field). Only overrides are saved.
-- `klaude list` shows all models and availability.
+- `klaude agents` shows all models and availability.
 
 Full reference: [references/config-file.md](references/config-file.md)
 

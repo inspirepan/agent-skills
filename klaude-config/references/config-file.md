@@ -63,7 +63,7 @@ provider_list:
 | With variant | `sonnet:no-thinking` | Model variant (defined in provider config) |
 | Preference list | `[gpt-5.5, gpt-5.4, opus]` | Try matching providers for each entry in order, then move to the next entry |
 
-Use `klaude list` to see all configured models and their availability.
+Use `klaude agents` to see all configured models and their availability.
 
 When a selector is unqualified, klaude expands it across matching providers in `provider_list` order. For example, `gpt-5.4` can resolve through `openai` and `openrouter` before falling through to the next model in the list.
 
