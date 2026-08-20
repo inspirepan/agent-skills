@@ -1,13 +1,13 @@
 ---
 name: klaude-config
-description: Reference for klaude-code configuration, skill installation, and memory file locations. Use when the user asks about configuring models, installing skills, setting up providers, or wants to know where config/skill/memory files live and how they take effect.
+description: Reference for klaude-code configuration, skill installation, memory file locations, and the background-agent CLI. Use when the user asks about configuring models, installing skills, setting up providers, where config/skill/memory files live, or how klaude sessions talk to each other (run, ps, send, wait, attach, orchestrating background agents).
 metadata:
-  short-description: Config and skill reference
+  short-description: Config, skill, and CLI reference
 ---
 
 # klaude-config
 
-Quick reference for klaude-code's configuration system, skill management, and memory files.
+Quick reference for klaude-code's configuration system, skill management, memory files, and the background-agent command surface.
 
 ## Configuration
 
@@ -78,6 +78,32 @@ Skills are `SKILL.md` files loaded into the system prompt on demand.
 
 Full reference: [references/skill-system.md](references/skill-system.md)
 
+## Background Agents & Cross-Session Communication
+
+klaude is an agent multiplexer: one local server owns all execution; the TUI and every CLI command are clients of it. Agents keep running after the CLI returns, and sessions never expire — `send` works days later and across server restarts.
+
+| Command | Purpose |
+|---------|---------|
+| `klaude run` | Spawn a background agent, print its id, return at once |
+| `klaude ps` | List sessions and runtime states |
+| `klaude brief TARGET` | Compact bounded status of one session |
+| `klaude wait` | Block until agents finish (barrier); print results |
+| `klaude output` | Print a session's output (last reply / turns / transcript) |
+| `klaude send TARGET` | Follow-up message: queued while running, `--steer` to interrupt |
+| `klaude respond TARGET` | Answer a pending approval/question (`waiting_input`) |
+| `klaude kill` | Interrupt a running agent; session stays resumable |
+| `klaude attach TARGET` | Open the TUI on a session: replay, then follow live |
+
+Key points:
+- TARGET = session id (unique prefix) or `run --name`; `--group` addresses a whole fan-out; `--json` everywhere for machines.
+- Typical loop: `id=$(klaude run "...")` → `klaude wait "$id"` → `klaude send "$id" --wait "next round..."` — the session keeps full context between rounds.
+- Fan-out: spawn with `run --group NAME`, barrier with `wait --group NAME`, then `output --group NAME | klaude run --wait "synthesize"`.
+- `send` does not answer pending interactions; use `respond` (check the request with `brief` first).
+- Agent-to-agent sends carry sender identity: `send --from NAME`, or automatic via `KLAUDE_SESSION_ID` when sent from inside a klaude agent — the target sees the text wrapped in `<agent-message from="...">` instead of as plain operator input.
+- `klaude agents --prime` prints the full orchestration playbook plus the live agent/model inventory.
+
+Full reference: [references/background-agents.md](references/background-agents.md)
+
 ## Memory Files
 
 Persistent instructions loaded into every conversation.
@@ -99,4 +125,5 @@ Full reference: [references/memory-files.md](references/memory-files.md)
 - **[config-file.md](references/config-file.md)**: YAML structure, model selection syntax, API key resolution, merging rules, all config fields.
 - **[builtin-providers.md](references/builtin-providers.md)**: all providers with env vars, protocols, models, default assignments.
 - **[skill-system.md](references/skill-system.md)**: skill directories, priority, SKILL.md format, dynamic discovery, override behavior.
+- **[background-agents.md](references/background-agents.md)**: run/ps/brief/wait/output/send/respond/kill/attach, TARGET addressing, states, approval policy, orchestration patterns.
 - **[memory-files.md](references/memory-files.md)**: memory file locations, discovery rules, categories, limits.
