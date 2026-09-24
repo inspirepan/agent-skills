@@ -109,6 +109,30 @@ class InputParsingTests(unittest.TestCase):
                 image_gen.parse_inputs([{"role": "source", "path": str(source), "mimeType": "image/jpeg"}])
 
 
+class OpenAISizeTests(unittest.TestCase):
+    def test_gpt_image_maps_aspect_ratio_and_resolution_to_size(self) -> None:
+        payload, _ = image_gen.build_job(common_args(aspect_ratio="16:9", resolution="2K"), prompt="Test")
+        body = payload["request"]["body"]
+        self.assertEqual(body["size"], "2048x1152")
+        self.assertNotIn("aspect_ratio", body)
+        self.assertNotIn("resolution", body)
+
+    def test_gpt_image_table_and_adaptive(self) -> None:
+        self.assertEqual(image_gen.gpt_image_size("gpt-image-2.5-flare", "21:9", "1K"), "1344x576")
+        self.assertEqual(image_gen.gpt_image_size("gpt-image-2.5-sunburst", "adaptive", "2K"), "auto")
+
+    def test_explicit_size_wins_over_aspect_ratio(self) -> None:
+        payload, _ = image_gen.build_job(common_args(size="1536x1024", aspect_ratio="9:16"), prompt="Test")
+        body = payload["request"]["body"]
+        self.assertEqual(body["size"], "1536x1024")
+        self.assertNotIn("aspect_ratio", body)
+
+    def test_non_gpt_image_keeps_aspect_ratio(self) -> None:
+        args = common_args(model="doubao-seedream-5-0-pro-260628", aspect_ratio="21:9")
+        payload, _ = image_gen.build_job(args, prompt="Test")
+        self.assertEqual(payload["request"]["body"]["aspect_ratio"], "21:9")
+
+
 class DryRunTests(unittest.TestCase):
     def test_dry_run_shows_upload_plan_without_reading_bytes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

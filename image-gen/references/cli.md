@@ -17,10 +17,12 @@ uv run scripts/image_gen.py generate-batch --batch-input jobs.jsonl --out-dir ou
 
 ## Common options
 
-`--model` defaults to `gpt-image-2`. Use `--prompt` or `--prompt-file`.
+`--model` defaults to `gpt-image-2.5-flare`. Use `--prompt` or `--prompt-file`.
 Only explicit common controls enter the provider body: `--n`, `--size`,
 `--quality`, `--aspect-ratio`, `--resolution`, `--background`, and
-`--output-format`. Use `--param KEY=VALUE` repeatedly for provider controls;
+`--output-format`. OpenAI Images has no `aspect_ratio`/`resolution`, so for
+`gpt-image*` models the CLI converts them into `size` (for example `16:9` +
+`2K` becomes `2048x1152`, `adaptive` becomes `auto`); an explicit `--size` wins. Use `--param KEY=VALUE` repeatedly for provider controls;
 VALUE is JSON-decoded when possible and dot paths construct objects. Use
 `--body-json JSON_OR_@FILE` for an initial JSON object.
 
@@ -65,7 +67,8 @@ inputs to `/image-inputs` and replaces each path with the returned HTTPS URL.
 
 ```bash
 # GPT Image
-uv run scripts/image_gen.py generate --model gpt-image-2 --prompt "Studio product photo" --size 1536x1024
+uv run scripts/image_gen.py generate --prompt "Studio product photo" --aspect-ratio 3:2 --resolution 2K
+uv run scripts/image_gen.py generate --model gpt-image-2.5-sunburst --prompt "Campaign hero shot" --size 2400x1600
 
 # Google: nested provider configuration
 uv run scripts/image_gen.py generate --model nano-banana-2 --prompt "A small cabin in snow" \
@@ -74,7 +77,7 @@ uv run scripts/image_gen.py generate --model nano-banana-2 --prompt "A small cab
   --param 'generationConfig.responseModalities=["IMAGE"]'
 
 uv run scripts/image_gen.py generate --model midjourney --prompt "Cinematic misty coast" \
-  --param mj_model='"v8.1"' --param resolution='"sd"' --out output/coast
+  --param mj_model='"v8.2"' --param resolution='"hd"' --out output/coast
 uv run scripts/image_gen.py generate --model ideogram-v4 --prompt "Poster reading verbatim: MINT TEA"
 uv run scripts/image_gen.py generate --model doubao-seedream-5-0-pro-260628 --prompt "Wide architectural panorama" --aspect-ratio 21:9
 ```

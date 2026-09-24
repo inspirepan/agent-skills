@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import math
 import mimetypes
 import os
 import sys
@@ -19,7 +20,7 @@ from urllib.parse import urljoin, urlparse
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 DEFAULT_BASE_URL = "https://api.youtu.uk"
-DEFAULT_MODEL = "gpt-image-2"
+DEFAULT_MODEL = "gpt-image-2.5-flare"
 DEFAULT_TIMEOUT = 600
 DEFAULT_REQUEST_TIMEOUT = 60.0
 DEFAULT_POLL_INTERVAL = 2.0
@@ -34,10 +35,30 @@ PROMPT_FIELDS = ("use_case", "asset_type", "scene", "subject", "style", "composi
 GEMINI_IMAGE_ALIASES = {
     "nano-banana-2-lite": "gemini-3.1-flash-lite-image",
     "nano-banana-lite": "gemini-3.1-flash-lite-image",
+    "gemini-flash-lite-image-latest": "gemini-3.1-flash-lite-image",
     "nano-banana-2": "gemini-3.1-flash-image",
     "nano-banana-latest": "gemini-3.1-flash-image",
     "nano-banana-pro": "gemini-3-pro-image",
 }
+# OpenAI Images has no aspect_ratio/resolution; the gateway forwards the body as-is.
+GPT_IMAGE_LONG_EDGE = {"1K": 1024, "2K": 2048, "4K": 3840}
+# Canonical sizes shared with image-playground; other ratios are derived.
+GPT_IMAGE_SIZES = {
+    "1:1": ("1024x1024", "2048x2048", "2880x2880"),
+    "3:2": ("1536x1024", "2400x1600", "3456x2304"),
+    "2:3": ("1024x1536", "1600x2400", "2304x3456"),
+    "4:3": ("1152x864", "2048x1536", "3264x2448"),
+    "3:4": ("864x1152", "1536x2048", "2448x3264"),
+    "5:4": ("1120x896", "2240x1792", "3200x2560"),
+    "4:5": ("896x1120", "1792x2240", "2560x3200"),
+    "16:9": ("1280x720", "2048x1152", "3840x2160"),
+    "9:16": ("720x1280", "1152x2048", "2160x3840"),
+    "21:9": ("1344x576", "2016x864", "3808x1632"),
+    "3:1": ("1536x512", "2400x800", "3840x1280"),
+    "1:3": ("512x1536", "800x2400", "1280x3840"),
+}
+GPT_IMAGE_MIN_PIXELS = 655_360
+GPT_IMAGE_MAX_PIXELS = 8_294_400
 
 
 def die(message: str, code: int = 1) -> None:
@@ -343,6 +364,48 @@ def explicit_body(args: argparse.Namespace) -> dict[str, Any]:
     return values
 
 
+def parse_ratio(value: Any) -> tuple[int, int]:
+    try:
+        w, h = (int(part) for part in str(value).split(":"))
+    except ValueError:
+        w = h = 0
+    if w <= 0 or h <= 0:
+        die(f"Invalid aspect ratio {value!r}; use W:H such as 16:9.")
+    return w, h
+
+
+def gpt_image_size(model: str, aspect_ratio: Any, resolution: Any) -> str:
+    if str(aspect_ratio).lower() in {"adaptive", "auto"}:
+        return "auto"
+    key = str(resolution).upper() if resolution is not None else "1K"
+    if key not in GPT_IMAGE_LONG_EDGE:
+        die(f"{model} resolution must be one of {', '.join(GPT_IMAGE_LONG_EDGE)}; or pass --size WxH.")
+    ratio = str(aspect_ratio) if aspect_ratio is not None else "1:1"
+    if ratio in GPT_IMAGE_SIZES:
+        return GPT_IMAGE_SIZES[ratio][list(GPT_IMAGE_LONG_EDGE).index(key)]
+    w, h = parse_ratio(ratio)
+    if max(w, h) > 3 * min(w, h):
+        die(f"{model} supports aspect ratios up to 3:1; got {aspect_ratio}.")
+    # Fit the long edge, clamped to the provider's pixel budget; edges are multiples of 16.
+    area = w * h
+    scale = min(GPT_IMAGE_LONG_EDGE[key] / max(w, h), math.sqrt(GPT_IMAGE_MAX_PIXELS / area))
+    scale = max(scale, math.sqrt(GPT_IMAGE_MIN_PIXELS / area))
+    width, height = (max(16, round(w * scale / 16) * 16), max(16, round(h * scale / 16) * 16))
+    if width * height > GPT_IMAGE_MAX_PIXELS:
+        width, height = (math.floor(w * scale / 16) * 16, math.floor(h * scale / 16) * 16)
+    elif width * height < GPT_IMAGE_MIN_PIXELS:
+        width, height = (math.ceil(w * scale / 16) * 16, math.ceil(h * scale / 16) * 16)
+    return f"{width}x{height}"
+
+
+def normalize_openai_size(model: str, body: dict[str, Any]) -> None:
+    aspect_ratio = body.pop("aspect_ratio", None)
+    resolution = body.pop("resolution", None)
+    if (aspect_ratio is None and resolution is None) or body.get("size") is not None:
+        return
+    body["size"] = gpt_image_size(model, aspect_ratio, resolution)
+
+
 def request_path_for(model: str, explicit: str | None) -> str:
     if explicit:
         if "://" in explicit or not explicit.startswith("/"):
@@ -384,6 +447,8 @@ def build_job(args: argparse.Namespace, *, prompt: str, overrides: dict[str, Any
     else:
         body["model"] = model
         body["prompt"] = final_prompt
+        if model.startswith("gpt-image") and request_path.startswith("/v1/images/"):
+            normalize_openai_size(model, body)
     if "inputs" in overrides and not isinstance(overrides["inputs"], list):
         die("Batch job inputs must be an array.")
     inputs = parse_inputs(overrides["inputs"]) if "inputs" in overrides else parse_inputs(args.input)

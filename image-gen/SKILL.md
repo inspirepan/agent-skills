@@ -7,7 +7,7 @@ license: "Apache License 2.0"
 # Image Generation
 
 Use the model-agnostic Youtu image-jobs gateway through `scripts/image_gen.py`.
-It defaults to `gpt-image-2`, but supports any model exposed by the gateway.
+It defaults to `gpt-image-2.5-flare`, but supports any model exposed by the gateway.
 Live requests require `YOUTU_API_KEY`; `YOUTU_BASE_URL` optionally replaces
 `https://api.youtu.uk`. Run commands with `uv run`.
 
