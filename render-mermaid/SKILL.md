@@ -1,11 +1,13 @@
 ---
 name: "render-mermaid"
-description: "Use when the user asks you to analyze a repository, draw an architecture diagram, analyze a workflow/process, or explain something through a visual diagram. Prefer this skill whenever structured relationships, flows, states, sequences, or decision paths need to be communicated clearly. Do not use for general image generation or non-Mermaid charting tools."
+description: "Render Mermaid diagrams to standalone PNG/SVG/HTML files. Only use when the user explicitly asks for a separate Mermaid image or file (e.g. \"export as PNG\", \"save the diagram to a file\", \"give me an SVG/HTML\"). For architecture diagrams, workflows, sequences, or any other visual explanation, do NOT use this skill by default -- write a ```mermaid code block directly in the reply, since the client renders it inline. Do not use for general image generation or non-Mermaid charting tools."
 ---
 
 # Render Mermaid
 
 Render Mermaid diagrams to PNG/SVG/HTML using the official Mermaid renderer.
+
+> **Default behavior**: when a diagram helps explain something, just write a ```` ```mermaid ```` fenced block in the reply -- the client renders it inline. Only follow this workflow when the user explicitly wants a standalone image or file.
 
 ## Workflow
 
