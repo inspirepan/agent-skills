@@ -8,6 +8,8 @@ license: "Apache License 2.0"
 
 Use the model-agnostic Youtu image-jobs gateway through `scripts/image_gen.py`.
 It defaults to `gpt-image-2.5-flare`, but supports any model exposed by the gateway.
+Nano Banana 2.1 is supported as `nano-banana-2.1`; use
+`references/model-routing.md` as the source of truth for its route and capabilities.
 Live requests require `YOUTU_API_KEY`; `YOUTU_BASE_URL` optionally replaces
 `https://api.youtu.uk`. Run commands with `uv run`.
 

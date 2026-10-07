@@ -133,6 +133,97 @@ class OpenAISizeTests(unittest.TestCase):
         self.assertEqual(payload["request"]["body"]["aspect_ratio"], "21:9")
 
 
+class GeminiRoutingTests(unittest.TestCase):
+    def test_aliases_and_canonical_ids_use_generate_content(self) -> None:
+        aliases = {
+            "nano-banana-2.1": "gemini-nano-banana-2.1",
+            "nano-banana-2": "gemini-3.1-flash-image",
+            "nano-banana-latest": "gemini-3.1-flash-image",
+            "nano-banana-2-lite": "gemini-3.1-flash-lite-image",
+            "nano-banana-lite": "gemini-3.1-flash-lite-image",
+            "gemini-flash-lite-image-latest": "gemini-3.1-flash-lite-image",
+            "nano-banana-pro": "gemini-3-pro-image",
+        }
+        for alias, canonical in aliases.items():
+            for model in (alias, canonical):
+                with self.subTest(model=model):
+                    payload, _ = image_gen.build_job(common_args(model=model), prompt="Final prompt")
+                    request = payload["request"]
+                    self.assertEqual(request["path"], f"/gemini/v1beta/models/{canonical}:generateContent")
+                    self.assertEqual(request["body"], {"contents": [{"parts": [{"text": "Final prompt"}], "role": "user"}]})
+
+    def test_nano_banana_21_preserves_nested_parameters_and_search(self) -> None:
+        tools = [{"googleSearch": {"searchTypes": {"webSearch": {}, "imageSearch": {}}}}]
+        for size in ("1K", "2K", "4K"):
+            for thinking in ("minimal", "medium", "high"):
+                with self.subTest(size=size, thinking=thinking):
+                    args = common_args(
+                        model="nano-banana-2.1",
+                        body_json=json.dumps({
+                            "model": "stale-model", "prompt": "Stale prompt",
+                            "contents": [{"parts": [{"text": "Stale contents"}]}],
+                            "generationConfig": {"imageConfig": {"aspectRatio": "16:9", "imageSize": "1K"}},
+                        }),
+                        param=[
+                            f"generationConfig.imageConfig.imageSize={size}",
+                            f"generationConfig.thinkingConfig.thinkingLevel={thinking}",
+                            'generationConfig.responseModalities=["IMAGE"]',
+                            f"tools={json.dumps(tools)}",
+                        ],
+                    )
+                    payload, _ = image_gen.build_job(args, prompt="Final prompt")
+                    self.assertEqual(payload["request"]["body"], {
+                        "contents": [{"parts": [{"text": "Final prompt"}], "role": "user"}],
+                        "generationConfig": {
+                            "imageConfig": {"aspectRatio": "16:9", "imageSize": size},
+                            "thinkingConfig": {"thinkingLevel": thinking},
+                            "responseModalities": ["IMAGE"],
+                        },
+                        "tools": tools,
+                    })
+
+    def test_batch_override_routes_nano_banana_21_with_fourteen_inputs(self) -> None:
+        inputs = [
+            {"role": "reference" if index < 10 else "character",
+             "url": f"https://cdn.example.com/{index}.png", "mimeType": "image/png"}
+            for index in range(14)
+        ]
+        payload, parsed_inputs = image_gen.build_job(common_args(), prompt="Combine all inputs", overrides={
+            "model": "nano-banana-2.1",
+            "inputs": inputs,
+            "params": {"generationConfig": {"imageConfig": {"imageSize": "4K"}}},
+        })
+        self.assertEqual(payload["request"]["path"], "/gemini/v1beta/models/gemini-nano-banana-2.1:generateContent")
+        self.assertEqual(payload["request"]["body"]["generationConfig"], {"imageConfig": {"imageSize": "4K"}})
+        self.assertEqual(payload["inputs"], parsed_inputs)
+        self.assertEqual(parsed_inputs, [item | {"ordinal": index} for index, item in enumerate(inputs)])
+
+    def test_explicit_request_path_still_wins(self) -> None:
+        path = "/gemini/v1beta/models/custom-image:generateContent"
+        payload, _ = image_gen.build_job(common_args(model="nano-banana-2.1", request_path=path), prompt="Test")
+        self.assertEqual(payload["request"]["path"], path)
+        self.assertNotIn("model", payload["request"]["body"])
+
+    def test_legacy_nano_banana_keeps_512_parameter(self) -> None:
+        for model in ("nano-banana-2", "nano-banana-latest"):
+            with self.subTest(model=model):
+                args = common_args(model=model, param=['generationConfig.imageConfig.imageSize="512"'])
+                payload, _ = image_gen.build_job(args, prompt="Test")
+                self.assertEqual(payload["request"]["path"], "/gemini/v1beta/models/gemini-3.1-flash-image:generateContent")
+                self.assertEqual(payload["request"]["body"]["generationConfig"], {"imageConfig": {"imageSize": "512"}})
+
+    def test_gpt_default_and_unknown_models_keep_openai_path(self) -> None:
+        parser = argparse.ArgumentParser()
+        image_gen.add_common(parser)
+        args = parser.parse_args([])
+        self.assertEqual(args.model, "gpt-image-2.5-flare")
+        for model in (args.model, "gemini-3.8-flash", "unknown-image-model"):
+            with self.subTest(model=model):
+                payload, _ = image_gen.build_job(common_args(model=model), prompt="Test")
+                self.assertEqual(payload["request"]["path"], "/v1/images/generations")
+                self.assertEqual(payload["request"]["body"], {"model": model, "prompt": "Test"})
+
+
 class DryRunTests(unittest.TestCase):
     def test_dry_run_shows_upload_plan_without_reading_bytes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

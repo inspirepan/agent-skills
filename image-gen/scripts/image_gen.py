@@ -36,6 +36,7 @@ GEMINI_IMAGE_ALIASES = {
     "nano-banana-2-lite": "gemini-3.1-flash-lite-image",
     "nano-banana-lite": "gemini-3.1-flash-lite-image",
     "gemini-flash-lite-image-latest": "gemini-3.1-flash-lite-image",
+    "nano-banana-2.1": "gemini-nano-banana-2.1",
     "nano-banana-2": "gemini-3.1-flash-image",
     "nano-banana-latest": "gemini-3.1-flash-image",
     "nano-banana-pro": "gemini-3-pro-image",
@@ -412,7 +413,7 @@ def request_path_for(model: str, explicit: str | None) -> str:
             die("--request-path must be an absolute URL path, not a URL.")
         return explicit
     api_model = GEMINI_IMAGE_ALIASES.get(model, model)
-    if api_model.startswith("gemini-") and "image" in api_model:
+    if api_model in GEMINI_IMAGE_ALIASES.values() or (api_model.startswith("gemini-") and "image" in api_model):
         return f"/gemini/v1beta/models/{api_model}:generateContent"
     return "/v1/images/generations"
 
