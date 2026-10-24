@@ -1,9 +1,5 @@
 # Sources
 
-- `agent-browser`: https://github.com/vercel-labs/agent-browser/tree/main/skills/agent-browser
-- `excalidraw-diagram`: https://github.com/coleam00/excalidraw-diagram-skill
-- `notion-cli`: https://github.com/makenotion/skills/tree/main/skills/notion-cli
-
 - `show-me`: adapted for standalone Codex use from https://github.com/humanlayer/humanlayer/tree/2f66a45b186d88488fa356862be0117db1ccae9f/apps/riptide-humanlayer-claude-plugin/skills/show-me (Apache-2.0; local rewrites remove application dependencies).
 - `research-codebase`: adapted for standalone Codex use from https://github.com/humanlayer/humanlayer/tree/2f66a45b186d88488fa356862be0117db1ccae9f/apps/riptide-rpi-claude-plugin/skills/create-research-questions, https://github.com/humanlayer/humanlayer/tree/2f66a45b186d88488fa356862be0117db1ccae9f/apps/riptide-rpi-claude-plugin/skills/create-research (Apache-2.0; local rewrites remove application dependencies).
 - `design-outline`: adapted for standalone Codex use from https://github.com/humanlayer/humanlayer/tree/2f66a45b186d88488fa356862be0117db1ccae9f/apps/riptide-rpi-claude-plugin/skills/create-design-discussion, https://github.com/humanlayer/humanlayer/tree/2f66a45b186d88488fa356862be0117db1ccae9f/apps/riptide-rpi-claude-plugin/skills/create-structure-outline (Apache-2.0; local rewrites remove application dependencies).

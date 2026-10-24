@@ -1,6 +1,12 @@
 # Agent Skills
 
-Shared skills for klaude, Codex, Claude Code, and other agents supported by [Vercel Skills](https://github.com/vercel-labs/skills).
+Locally authored skills and maintained adaptations for klaude, Codex, Claude Code, and other agents supported by [Vercel Skills](https://github.com/vercel-labs/skills).
+
+## Scope
+
+- `image-gen`, `klaude-config`, `klaude-session-logs`, `render-mermaid`.
+- HumanLayer adaptations: `show-me`, `research-codebase`, `design-outline`, `implement-outline`.
+- Third-party skills without a maintained local adaptation are installed directly from upstream. Personal dotfiles track their source revisions and enable lists; do not vendor copies here.
 
 ## Install
 
