@@ -11,10 +11,6 @@ Skills are `SKILL.md` files with YAML frontmatter that provide domain-specific i
 
 Listed from lowest to highest priority. Higher priority overrides lower when names collide.
 
-### System skills (built-in)
-- `~/.klaude/skills/.system/`
-- Auto-installed from package assets on startup. Lowest priority.
-
 ### User skills
 Checked in order (later directories override earlier ones with same skill name):
 1. `~/.claude/skills/`
@@ -23,13 +19,15 @@ Checked in order (later directories override earlier ones with same skill name):
 4. `~/.config/agents/skills/`
 
 ### Project skills (highest priority)
-Relative to working directory (and git root if different):
+At every ancestor from filesystem root to the working directory; nearest directory wins:
 1. `./.claude/skills/`
 2. `./.agents/skills/`
 
 ## Installing a Skill
 
-Place a directory containing `SKILL.md` into any user or project skill directory:
+Install shared skills with `npx skills add inspirepan/agent-skills --global --agent codex claude-code --skill klaude-config`. klaude reads `~/.agents/skills/` directly. Skills are not bundled or auto-installed by the application. Hidden child directories are skipped; directory symlinks are supported.
+
+Alternatively, place a directory containing `SKILL.md` into any user or project skill directory:
 
 ```
 ~/.agents/skills/my-skill/SKILL.md        # user-level
@@ -94,7 +92,6 @@ When multiple nested directories define the same skill name, the deeper definiti
 
 If two skills share the same `name`, the higher-priority level wins:
 - Project skills override user skills
-- User skills override system skills
 - Within the same level, later directories override earlier ones
 
 A warning is logged when duplicates are detected.

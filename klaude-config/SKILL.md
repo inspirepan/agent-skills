@@ -68,11 +68,10 @@ Full provider details and models: [references/builtin-providers.md](references/b
 Skills are `SKILL.md` files loaded into the system prompt on demand.
 
 **Directories** (lowest to highest priority):
-1. System: `~/.klaude/skills/.system/` (built-in)
-2. User: `~/.claude/skills/`, `~/.klaude/skills/`, `~/.agents/skills/`, `~/.config/agents/skills/`
-3. Project: `./.claude/skills/`, `./.agents/skills/`
+1. User: `~/.claude/skills/`, `~/.klaude/skills/`, `~/.agents/skills/`, `~/.config/agents/skills/`
+2. Project: `./.claude/skills/`, `./.agents/skills/`
 
-**Install**: place `my-skill/SKILL.md` in any skill directory. `description` field is required.
+**Install**: `npx skills add inspirepan/agent-skills --global --agent codex claude-code --skill klaude-config`. klaude reads the shared `~/.agents/skills/` directory. Skills are installed separately; the application does not bundle them. Manual `my-skill/SKILL.md` directories are also supported; `description` is required.
 
 **Dynamic discovery**: skills in `.claude/skills/` or `.agents/skills/` along file access paths are found automatically.
 
