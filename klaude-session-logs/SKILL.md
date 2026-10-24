@@ -1,11 +1,11 @@
 ---
-name: session-logs
-description: Search and analyze session logs (older/parent conversations) using jq. Use this skill when the user asks about prior chats, parent conversations, historical context, or session cost/usage analysis. Triggers include "session logs", "previous conversation", "what did we discuss", "session cost", "session history".
+name: klaude-session-logs
+description: Search and analyze klaude-code session logs using jq. Use when the user asks about klaude-code conversation history, parent sessions, or session cost and usage.
 ---
 
-# session-logs
+# klaude-session-logs
 
-Search conversation history stored in session JSONL files. Use when a user references older/parent conversations or asks what was said before.
+Search klaude-code conversation history stored in session JSONL files. Use when a user references older/parent conversations or asks what was said before.
 
 ## Location
 
