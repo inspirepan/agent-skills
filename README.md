@@ -4,7 +4,7 @@ Locally authored skills and maintained adaptations for klaude, Codex, Claude Cod
 
 ## Scope
 
-- `commit`, `image-gen`, `klaude-config`, `klaude-session-logs`, `render-mermaid`.
+- `commit`, `deslop`, `image-gen`, `klaude-config`, `klaude-session-logs`, `render-mermaid`.
 - HumanLayer adaptations: `show-me`, `research-codebase`, `design-outline`, `implement-outline`.
 - Third-party skills without a maintained local adaptation are installed directly from upstream. Personal dotfiles track sources and enable lists; do not vendor copies here.
 
